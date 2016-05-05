@@ -5,12 +5,13 @@
 
 #include <stdio.h>
 
+#define PATH_SIZE 64
 #define BUFFER_SIZE 512
 #define SERVER_FIFO_PATH "sobuserver_fifo"
 
 int main(int argc, char* argv[]) {
-	char message[BUFFER_SIZE];
-	int i, num_messages, server_fifo;
+	char message[BUFFER_SIZE], pipe_path[PATH_SIZE];
+	int i, num_messages, server_fifo, client_fifo;
 	pid_t pid;
 
 	// Verifica se os argumentos são válidos
@@ -54,10 +55,17 @@ int main(int argc, char* argv[]) {
 	pid = getpid();
 	num_messages = argc-2;
 	
+	// Cria pipe para o servidor comunicar com o cliente
+	sprintf(pipe_path, "/tmp/%d", (int) pid);
+	client_fifo = mkfifo(pipe_path, 0600);
+	
 	for(i = 0; i < num_messages; i++) {
-		sscanf(message, "%s %s %d", argv[1], argv[i], &pid);
+		sprintf(message, "%s %s %d", argv[1], argv[i], (int) pid);
 		write(server_fifo, message, strlen(message)+1);
 	}	
-	
+
+	while(read(client_fifo, message, BUFFER_SIZE))
+		write(1, message, strlen(message));
+
 	return 0;
 }
