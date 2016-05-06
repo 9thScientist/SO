@@ -11,8 +11,9 @@
 
 int main(int argc, char* argv[]) {
 	char message[BUFFER_SIZE], pipe_path[PATH_SIZE];
-	int i, num_messages, server_fifo, client_fifo;
+	int i, server_fifo, client_fifo;
 	pid_t pid;
+	uid_t uid;
 
 	// Verifica se os argumentos são válidos
 	if (argc == 1) {
@@ -53,17 +54,18 @@ int main(int argc, char* argv[]) {
 	}
 
 	pid = getpid();
-	num_messages = argc-2;
+	uid = getuid();
 	
-	// Cria pipe para o servidor comunicar com o cliente
-	sprintf(pipe_path, "/tmp/%d", (int) pid);
-	client_fifo = mkfifo(pipe_path, 0600);
-	
-	for(i = 0; i < num_messages; i++) {
-		sprintf(message, "%s %s %d", argv[1], argv[i], (int) pid);
+	for(i = 2; i < argc; i++) {
+		sprintf(message, "%s %d %d %s", argv[1], (int) pid, (int) uid, argv[i]);
 		write(server_fifo, message, strlen(message)+1);
 	}	
 
+	// Cria pipe para o servidor comunicar com o cliente
+	sprintf(pipe_path, "/tmp/%d", (int) pid);
+	mkfifo(pipe_path, 0600);
+
+	client_fifo = open(pipe_path, O_RDONLY);
 	while(read(client_fifo, message, BUFFER_SIZE))
 		write(1, message, strlen(message));
 
