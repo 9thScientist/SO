@@ -27,14 +27,14 @@ int main(void) {
 	int server_fifo, alive;
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
-			fprintf(stderr, "Could not set up request channel");
+			perror("Erro ao tentar criar canal de pedidos.");
 			return -1;
 	}
 
 	server_fifo = open(SERVER_FIFO_PATH, O_RDONLY);
 	
 	if (server_fifo == -1) {
-		fprintf(stderr, "Failed to read requests\n");
+		perror("Erro ao ler pedidos.");
 		return -2;
 	}
 	
@@ -63,6 +63,11 @@ void backup(MESSAGE msg) {
 
 	sprintf(pipe, "/tmp/%d", msg->pid);
 	response_pipe = open(pipe, O_WRONLY);
+
+	if (response_pipe == -1) {
+		perror("Erro ao tentar comunicar com cliente.");
+		return;
+	}
 
 	sprintf(response, "%s: copiado\n", msg->argument);
 	write(response_pipe, response, strlen(response)+1);

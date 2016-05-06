@@ -16,13 +16,8 @@ int main(int argc, char* argv[]) {
 	uid_t uid;
 
 	// Verifica se os argumentos são válidos
-	if (argc == 1) {
-		fprintf(stderr, "No command given\n");
-		return -1;
-	}
-
-	if (strcmp(argv[1], "backup") && strcmp(argv[1], "restore")){
-		fprintf(stderr, "'%s' is not a valid command\n", argv[1]);
+	if (argc == 1 || (strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
+		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\nTente 'sobucli --help' para mais ajuda.");
 		return -1;
 	}
 
@@ -34,12 +29,12 @@ int main(int argc, char* argv[]) {
 	if (!strcmp(argv[1], "backup")) {
 		for(i = 2; i < argc; i++) {
 			if (access(argv[i], F_OK) == -1) {
-				fprintf(stderr, "File %s does not exist\n", argv[i]);
+				fprintf(stderr, "Ficheiro '%s' não existe.\n", argv[i]);
 				return -2;
 			}
  
 			if (access(argv[i], R_OK) == -1) {
-				fprintf(stderr, "File %s is not readable\n", argv[i]);
+				fprintf(stderr, "Sem Permissões. Impossível ler ficheiro '%s'.\n", argv[i]);
 				return -2;
 			}
 		}
@@ -49,7 +44,7 @@ int main(int argc, char* argv[]) {
 	server_fifo = open(SERVER_FIFO_PATH, O_WRONLY);
 
 	if (server_fifo == -1){
-		perror("Could not send request to server");
+		perror("Erro ao tentar comunicar com servidor.");
 		return -3;
 	}
 
@@ -63,11 +58,23 @@ int main(int argc, char* argv[]) {
 
 	// Cria pipe para o servidor comunicar com o cliente
 	sprintf(pipe_path, "/tmp/%d", (int) pid);
-	mkfifo(pipe_path, 0600);
+	if (mkfifo(pipe_path, 0600) == -1) {
+		perror("Erro ao tentar criar canal com servidor.");
+		return -4;
+	}
 
 	client_fifo = open(pipe_path, O_RDONLY);
+	
+	if (client_fifo == -1) {
+		perror("Erro ao tentar abrir canal com servidor.");
+		return -5;
+	}
+	
 	while(read(client_fifo, message, BUFFER_SIZE))
 		write(1, message, strlen(message));
 
+
+	close(client_fifo);
+	close(server_fifo);
 	return 0;
 }
