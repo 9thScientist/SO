@@ -32,3 +32,6 @@ server
 
 # Debug files
 *.dSYM/
+
+# YCM
+.ycm_extra_conf.*
