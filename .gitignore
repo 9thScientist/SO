@@ -35,3 +35,6 @@ server
 
 # YCM
 .ycm_extra_conf.*
+
+# VIM
+*.swp
