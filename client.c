@@ -1,18 +1,25 @@
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 
 #include <stdio.h>
 
-#define PATH_SIZE 64
-#define BUFFER_SIZE 512
 #define SERVER_FIFO_PATH "sobuserver_fifo"
+#define BUFFER_SIZE 512
+#define MAX_CHILDREN 5 
+
+void count_dead(int pid);
+void write_succ_message();
+void write_fail_message();
+
+int alive;
+char** current_file;
 
 int main(int argc, char* argv[]) {
-	char message[BUFFER_SIZE], pipe_path[PATH_SIZE];
-	int i, server_fifo, client_fifo;
-	pid_t pid;
+	char message[BUFFER_SIZE];
+	int i, server_fifo;
 	uid_t uid;
 
 	// Verifica se os argumentos são válidos
@@ -40,6 +47,8 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
+	signal(SIGCHLD, count_dead);
+
 	// Prepara e envia informação a partir dos argumentos
 	server_fifo = open(SERVER_FIFO_PATH, O_WRONLY);
 
@@ -48,33 +57,45 @@ int main(int argc, char* argv[]) {
 		return -3;
 	}
 
-	pid = getpid();
 	uid = getuid();
-	
+
 	for(i = 2; i < argc; i++) {
-		sprintf(message, "%s %d %d %s", argv[1], (int) pid, (int) uid, argv[i]);
-		write(server_fifo, message, strlen(message)+1);
+		
+		if (alive == MAX_CHILDREN) 
+			pause();
+
+		alive++;
+		if (!fork()) {		
+			pid_t pid = getpid();
+			current_file = &argv[i];
+			signal(SIGUSR1, write_succ_message);
+			signal(SIGUSR2, write_fail_message);
+
+			sprintf(message, "%s %d %d %s", argv[1], (int) pid, (int) uid, argv[i]);
+			write(server_fifo, message, strlen(message)+1);
+
+			pause();
+
+			_exit(0);
+		}
 	}	
 
-	// Cria pipe para o servidor comunicar com o cliente
-	sprintf(pipe_path, "/tmp/%d", (int) pid);
-	if (mkfifo(pipe_path, 0600) == -1) {
-		perror("Erro ao tentar criar canal com servidor.");
-		return -4;
-	}
-
-	client_fifo = open(pipe_path, O_RDONLY);
-	
-	if (client_fifo == -1) {
-		perror("Erro ao tentar abrir canal com servidor.");
-		return -5;
-	}
-	
-	while(read(client_fifo, message, BUFFER_SIZE))
-		write(1, message, strlen(message));
-
-
-	close(client_fifo);
 	close(server_fifo);
 	return 0;
+}
+
+// decrementa o numero de filhos vivos
+void count_dead(int pid) {
+	waitpid(pid, NULL, WCONTINUED);
+	alive--;	
+}
+
+// escreve a mensagem de sucesso enviada pelo utilizador
+void write_succ_message() {
+	printf("%s: copiado\n", *current_file);
+}
+
+// escreve a mensagem de erro enviada pelo utilizador
+void write_fail_message() {
+	printf("%s: ERRO - Impossível copiar\n", *current_file);
 }

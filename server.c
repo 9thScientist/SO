@@ -1,4 +1,5 @@
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -20,11 +21,16 @@ typedef struct message {
 
 MESSAGE toMessage(char* str);
 void backup(MESSAGE msg);
+void count_dead(int pid);
+
+int alive;
 
 int main(void) {
 	MESSAGE msg;
 	char buffer[BUFFER_SIZE]; 
-	int server_fifo, alive;
+	int server_fifo;
+
+	signal(SIGCHLD, count_dead);
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
 			perror("Erro ao tentar criar canal de pedidos.");
@@ -38,19 +44,21 @@ int main(void) {
 		return -2;
 	}
 	
-	alive = 0;
 	while(read(server_fifo, buffer, BUFFER_SIZE)) {
 		msg = toMessage(buffer);
 		
 		if (alive == MAX_CHILDREN)
 			pause();
-		
+	
+		alive++;	
 		if (!fork()) {
 			switch(msg->operation) {
 				case BACKUP: backup(msg);
 							 break;
 			}
+			_exit(0);
 		}
+
 
 	}
 
@@ -58,21 +66,23 @@ int main(void) {
 }
 
 void backup(MESSAGE msg) {
-	char pipe[PATH_SIZE], response[BUFFER_SIZE];
-	int response_pipe;
+	int status;
 
-	sprintf(pipe, "/tmp/%d", msg->pid);
-	response_pipe = open(pipe, O_WRONLY);
+	if (!fork()) {
+		//comprime	
+		execlp("gzip", "gzip", msg->argument, NULL);
 
-	if (response_pipe == -1) {
-		perror("Erro ao tentar comunicar com cliente.");
-		return;
+		perror("Erro ao tentar comprimir ficheiro.\n\
+			   	Talvez o 'gzip' não esteja corretamente instalado no sistema.");
+		_exit(-1);
 	}
 
-	sprintf(response, "%s: copiado\n", msg->argument);
-	write(response_pipe, response, strlen(response)+1);
-
-	close(response_pipe);
+	wait(&status);
+	status = WEXITSTATUS(status);
+	if (status == 0) 
+		kill(msg->pid, SIGUSR1); //envia sinal de sucesso
+	else
+	   kill(msg->pid, SIGUSR2);	 //envia sinal de erro
 }
 
 MESSAGE toMessage(char* str) {
@@ -95,3 +105,8 @@ MESSAGE toMessage(char* str) {
 
 	return msg;
 }
+
+void count_dead(int pid) {
+	waitpid(pid, NULL, WCONTINUED);
+	alive--;	
+} 
