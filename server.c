@@ -63,6 +63,7 @@ int main(void) {
 
 	}
 
+	close(server_fifo); //TODO remover server_fifo
 	return 0;
 }
 
@@ -72,19 +73,19 @@ void backup(MESSAGE msg) {
 	struct passwd *pw = getpwuid(msg->uid);
 	struct stat st;
 
-	sprintf(root_dir, "%s/.backup", pw->pw_dir);	
+	sprintf(root_dir, "%s/.Backup", pw->pw_dir);	
 	if (stat(root_dir, &st) == -1) {
 		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.backup/data", pw->pw_dir);	
+		sprintf(root_dir, "%s/.Backup/data", pw->pw_dir);	
 		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.backup/metadata", pw->pw_dir);	
+		sprintf(root_dir, "%s/.Backup/metadata", pw->pw_dir);	
 		mkdir(root_dir,0700);
 	} 
 
 	//TODO copiar o conteúdo para /data e comprimir aí
 
 	if (!fork()) {
-		//comprime
+		// gzip -c ficheiro > ficheiro.gz
 		execlp("gzip", "gzip", msg->argument, NULL);
 
 		perror("Erro ao tentar comprimir ficheiro.\n\
