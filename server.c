@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pwd.h>
 
 #define SERVER_FIFO_PATH "sobuserver_fifo"
 #define BUFFER_SIZE 512
@@ -67,9 +68,23 @@ int main(void) {
 
 void backup(MESSAGE msg) {
 	int status;
+	char root_dir[PATH_SIZE];
+	struct passwd *pw = getpwuid(msg->uid);
+	struct stat st;
+
+	sprintf(root_dir, "%s/.backup", pw->pw_dir);	
+	if (stat(root_dir, &st) == -1) {
+		mkdir(root_dir,0700);
+		sprintf(root_dir, "%s/.backup/data", pw->pw_dir);	
+		mkdir(root_dir,0700);
+		sprintf(root_dir, "%s/.backup/metadata", pw->pw_dir);	
+		mkdir(root_dir,0700);
+	} 
+
+	//TODO copiar o conteúdo para /data e comprimir aí
 
 	if (!fork()) {
-		//comprime	
+		//comprime
 		execlp("gzip", "gzip", msg->argument, NULL);
 
 		perror("Erro ao tentar comprimir ficheiro.\n\
