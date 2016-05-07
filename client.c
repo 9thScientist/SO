@@ -21,10 +21,12 @@ int main(int argc, char* argv[]) {
 	char message[BUFFER_SIZE];
 	int i, server_fifo;
 	uid_t uid;
+	pid_t pid;
 
 	// Verifica se os argumentos são válidos
 	if (argc == 1 || (strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
-		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\nTente 'sobucli --help' para mais ajuda.");
+		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\n\
+						 Tente 'sobucli --help' para mais ajuda.");
 		return -1;
 	}
 
@@ -66,7 +68,7 @@ int main(int argc, char* argv[]) {
 
 		alive++;
 		if (!fork()) {		
-			pid_t pid = getpid();
+			pid = getpid();
 			current_file = &argv[i];
 			signal(SIGUSR1, write_succ_message);
 			signal(SIGUSR2, write_fail_message);
