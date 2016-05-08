@@ -178,11 +178,8 @@ char* generate_hash(char *file_path) {
 	char sha1sum[PATH_SIZE], *hash, *ret = NULL;
 	int pp[2], status;	
 
-	printf("OK!\n");
-
 	pipe(pp);
 
-	printf("A encriptar %s...", file_path);	
 	if (!fork()) {
 		close(pp[0]);
 		dup2(pp[1], 1);
@@ -199,8 +196,6 @@ char* generate_hash(char *file_path) {
 		printf("FAIL!\n");
 		return ret; 
 	}
-
-	printf("OK!\n");
 
 	close(pp[1]);
 	read(pp[0], sha1sum, PATH_SIZE);
