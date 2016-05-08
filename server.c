@@ -42,8 +42,8 @@ int main(void) {
 	signal(SIGCHLD, count_dead);
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
-			perror("Erro ao tentar criar canal de pedidos.");
-			return -1;
+		perror("Erro ao tentar criar canal de pedidos.");
+		return -1;
 	}
 
 	server_fifo = open(SERVER_FIFO_PATH, O_RDONLY);
@@ -53,7 +53,9 @@ int main(void) {
 		return -2;
 	}
 	
-	while(read(server_fifo, buffer, BUFFER_SIZE)) {
+	while(1) {
+		if (!read(server_fifo, buffer, BUFFER_SIZE)) continue;
+		
 		msg = toMessage(buffer);
 		
 		if (alive == MAX_CHILDREN)
@@ -73,8 +75,6 @@ int main(void) {
 
 	}
 
-	close(server_fifo); //TODO remover server_fifo
-	unlink(SERVER_FIFO_PATH);
 	return 0;
 }
 
@@ -199,10 +199,7 @@ char* generate_hash(char *file_path) {
 	
 	wait(&status);
 	status = WEXITSTATUS(status);
-	if (status != 0)  {
-		printf("FAIL!\n");
-		return ret; 
-	}
+	if (status != 0) return ret; 
 
 	close(pp[1]);
 	read(pp[0], sha1sum, PATH_SIZE);
