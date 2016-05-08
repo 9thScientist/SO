@@ -28,11 +28,13 @@ void send_error(pid_t pid);
 MESSAGE toMessage(char* str);
 void backup(MESSAGE msg);
 void count_dead(int pid);
+int create_root(char *home_dir);
 
 int alive;
 
 int main(void) {
 	MESSAGE msg;
+	struct passwd *pw;
 	char buffer[BUFFER_SIZE]; 
 	int server_fifo;
 
@@ -55,7 +57,10 @@ int main(void) {
 		
 		if (alive == MAX_CHILDREN)
 			pause();
-		
+
+		pw = getpwuid(msg->uid);
+		create_root(pw->pw_dir);
+
 		alive++;	
 		if (!fork()) {
 			switch(msg->operation) {
@@ -75,17 +80,6 @@ void backup(MESSAGE msg) {
 	int err;
 	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash;
 	struct passwd *pw = getpwuid(msg->uid);
-	struct stat st;
-
-	// Se a raiz do backup não existir, cria-a.
-	sprintf(root_dir, "%s/.Backup", pw->pw_dir);	
-	if (stat(root_dir, &st) == -1) {
-		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.Backup/data", pw->pw_dir);	
-		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.Backup/metadata", pw->pw_dir);	
-		mkdir(root_dir,0700);
-	} 
 	
 	//Gerar uma hash a partir do ficheiro
 	hash = generate_hash(msg->argument);
@@ -252,4 +246,27 @@ MESSAGE toMessage(char* str) {
 void count_dead(int pid) {
 	waitpid(pid, NULL, WCONTINUED);
 	alive--;	
-} 
+}
+
+/**
+ * Verifica se existe a raiz do backup. Caso não exista, cria-a.
+ * @param home_dir Home do utilizador
+ * @return 1 caso crie, 0 caso contrário
+ */
+int create_root(char *home_dir) {
+	struct stat st;
+	char root_dir[PATH_SIZE];
+	
+	// Se a raiz do backup não existir, cria-a.
+	sprintf(root_dir, "%s/.Backup", home_dir);	
+	if (stat(root_dir, &st) == -1) {
+		mkdir(root_dir,0700);
+		sprintf(root_dir, "%s/.Backup/data", home_dir);	
+		mkdir(root_dir,0700);
+		sprintf(root_dir, "%s/.Backup/metadata", home_dir);	
+		mkdir(root_dir,0700);
+		return 1;
+	}
+
+	return 0;
+}
