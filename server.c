@@ -117,16 +117,12 @@ void backup(MESSAGE msg) {
 int save_data(char* home_dir, char *file, char* hash) {
 	char data_path[PATH_SIZE];
 	int status, nf;
-	struct stat st;
 	
 	sprintf(data_path, "%s/.Backup/data/%s", home_dir, hash);
 	
-	if (stat(data_path, &st) != -1) return 0; 
-	else {
-		nf = open(data_path, O_CREAT | O_EXCL, 0600);
-		if (errno == EEXIST) return 0;
-		close(nf);
-	}
+	nf = open(data_path, O_CREAT | O_EXCL, 0600);
+	if (errno == EEXIST) return 0;
+	close(nf);
 	
 	if (!fork()) {
 		execlp("cp", "cp", file, data_path, NULL);
