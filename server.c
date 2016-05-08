@@ -9,7 +9,7 @@
 
 #define SERVER_FIFO_PATH "sobuserver_fifo"
 #define BUFFER_SIZE 512
-#define PATH_SIZE 64
+#define PATH_SIZE 128 
 #define MAX_CHILDREN 5
 #define BACKUP 0
 
@@ -20,6 +20,11 @@ typedef struct message {
 	uid_t uid;
 } *MESSAGE;
 
+int save_data(char* home_dir, char *file, char* hash); 
+int compress_file(char* file_path);
+char* generate_hash(char *file_path); 
+void send_success(pid_t pid); 
+void send_error(pid_t pid); 
 MESSAGE toMessage(char* str);
 void backup(MESSAGE msg);
 void count_dead(int pid);
@@ -50,7 +55,7 @@ int main(void) {
 		
 		if (alive == MAX_CHILDREN)
 			pause();
-	
+		
 		alive++;	
 		if (!fork()) {
 			switch(msg->operation) {
@@ -60,7 +65,6 @@ int main(void) {
 			_exit(0);
 		}
 
-
 	}
 
 	close(server_fifo); //TODO remover server_fifo
@@ -68,11 +72,12 @@ int main(void) {
 }
 
 void backup(MESSAGE msg) {
-	int status;
-	char root_dir[PATH_SIZE];
+	int err;
+	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash;
 	struct passwd *pw = getpwuid(msg->uid);
 	struct stat st;
 
+	// Se a raiz do backup não existir, cria-a.
 	sprintf(root_dir, "%s/.Backup", pw->pw_dir);	
 	if (stat(root_dir, &st) == -1) {
 		mkdir(root_dir,0700);
@@ -81,24 +86,146 @@ void backup(MESSAGE msg) {
 		sprintf(root_dir, "%s/.Backup/metadata", pw->pw_dir);	
 		mkdir(root_dir,0700);
 	} 
-
-	//TODO copiar o conteúdo para /data e comprimir aí
-
-	if (!fork()) {
-		// gzip -c ficheiro > ficheiro.gz
-		execlp("gzip", "gzip", msg->argument, NULL);
-
-		perror("Erro ao tentar comprimir ficheiro.\n\
-			   	Talvez o 'gzip' não esteja corretamente instalado no sistema.");
-		_exit(-1);
+	
+	//Gerar uma hash a partir do ficheiro
+	hash = generate_hash(msg->argument);
+	if (!hash) {
+		send_error(msg->pid);
+		return;
+	}
+	//Comprime o ficheiro na raiz com o nome hash
+	err = save_data(pw->pw_dir, msg->argument, hash);
+	if (err) {
+		free(hash);
+		send_error(msg->pid);
+		return;
 	}
 
+	//Cria symlink .Backup/data/digest -> .Backup/metadata/ficheiro
+	sprintf(root_dir, "%s/.Backup/data/%s", pw->pw_dir, hash);
+	sprintf(ln_dir, "%s/.Backup/metadata/%s", pw->pw_dir, msg->argument);
+	symlink(root_dir, ln_dir);
+
+	free(hash);
+
+	send_success(msg->pid);
+}
+
+/**
+ * Comprime o ficheiro file e guarda-o na ~/.Backup/data com o nome da hash
+ * @param home_dir home do utilizador
+ * @param file Nome do ficheiro a guardar
+ * @param hash Hash indicativa do ficheiro
+ * @erturn Código de erro
+ */
+int save_data(char* home_dir, char *file, char* hash) {
+	char data_path[PATH_SIZE];
+	int status;
+	struct stat st;
+	
+	sprintf(data_path, "%s/.Backup/data/%s", home_dir, hash);
+
+	if (stat(data_path, &st) != -1) return 0; 
+	
+	if (!fork()) {
+		execlp("cp", "cp", file, data_path, NULL);
+		perror("Erro ao tentar salvar ficheiro.");
+		_exit(1);
+	}
+	
 	wait(&status);
 	status = WEXITSTATUS(status);
-	if (status == 0) 
-		kill(msg->pid, SIGUSR1); //envia sinal de sucesso
-	else
-	   kill(msg->pid, SIGUSR2);	 //envia sinal de erro
+	if (status == 0)  
+		status = compress_file(data_path);
+
+	if (status != 0) return -1;
+
+	return 0;
+}
+
+/**
+ * Comprime o ficheiro e remove-lhe a extensão .gz
+ * @param file_path Ficheiro a comprimir
+ * @return Código de erro.
+ */
+int compress_file(char* file_path) {
+	char data_dir[PATH_SIZE];
+	int st=0;
+
+	if (!fork()) {
+		execlp("gzip", "gzip", file_path, NULL);
+		perror("Erro 1 ao tentar comprimir ficheiro");
+		_exit(1);
+	}
+	
+	sprintf(data_dir, "%s.gz", file_path);
+	wait(&st);
+	st = WEXITSTATUS(st);
+	if (st != 0) return st;
+
+	if (!fork()) {
+		execlp("mv", "mv", data_dir, file_path, NULL);
+		perror("Erro 2 ao tentar comprimir ficheiro");
+		_exit(2);
+	}
+
+	wait(&st);
+	st = WEXITSTATUS(st);
+
+	return st;
+}
+
+/**
+ * Gera a hash calculada por sha1sum do ficheiro dado
+ * @param file_path Ficheiro a encriptar
+ * @return hash gerada
+ */
+char* generate_hash(char *file_path) {
+	char sha1sum[PATH_SIZE], *hash, *ret = NULL;
+	int pp[2], status;	
+
+	printf("OK!\n");
+
+	pipe(pp);
+
+	printf("A encriptar %s...", file_path);	
+	if (!fork()) {
+		close(pp[0]);
+		dup2(pp[1], 1);
+		
+		execlp("sha1sum", "sha1sum", file_path, NULL);
+		close(pp[1]);
+		perror("Erro ao tentar calcular hash");
+		_exit(1);	
+	}
+	
+	wait(&status);
+	status = WEXITSTATUS(status);
+	if (status != 0)  {
+		printf("FAIL!\n");
+		return ret; 
+	}
+
+	printf("OK!\n");
+
+	close(pp[1]);
+	read(pp[0], sha1sum, PATH_SIZE);
+	close(pp[0]);
+
+
+	hash = strtok(sha1sum, " ");
+	
+	ret = malloc(strlen(hash) + 1);
+	strcpy(ret, hash);
+	return ret;
+}
+
+void send_success(pid_t pid) {
+	kill(pid, SIGUSR1); //envia sinal de sucesso
+}	
+
+void send_error(pid_t pid) {
+	kill(pid, SIGUSR2);	 //envia sinal de erro 
 }
 
 MESSAGE toMessage(char* str) {
@@ -116,7 +243,7 @@ MESSAGE toMessage(char* str) {
 	msg->uid = atoi(s);
 
 	s = strtok(NULL, " ");
-	if (s)
+	if (s) 
 		msg->argument = s;
 
 	return msg;
