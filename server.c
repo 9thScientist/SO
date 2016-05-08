@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pwd.h>
+#include <errno.h>
 
 #define SERVER_FIFO_PATH "sobuserver_fifo"
 #define BUFFER_SIZE 512
@@ -73,6 +74,7 @@ int main(void) {
 	}
 
 	close(server_fifo); //TODO remover server_fifo
+	unlink(SERVER_FIFO_PATH);
 	return 0;
 }
 
@@ -114,12 +116,17 @@ void backup(MESSAGE msg) {
  */
 int save_data(char* home_dir, char *file, char* hash) {
 	char data_path[PATH_SIZE];
-	int status;
+	int status, nf;
 	struct stat st;
 	
 	sprintf(data_path, "%s/.Backup/data/%s", home_dir, hash);
-
+	
 	if (stat(data_path, &st) != -1) return 0; 
+	else {
+		nf = open(data_path, O_CREAT | O_EXCL, 0600);
+		if (errno == EEXIST) return 0;
+		close(nf);
+	}
 	
 	if (!fork()) {
 		execlp("cp", "cp", file, data_path, NULL);
@@ -265,3 +272,4 @@ int create_root(char *home_dir) {
 
 	return 0;
 }
+
