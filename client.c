@@ -82,6 +82,8 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
+	while (alive > 0) wait(NULL);
+
 	close(server_fifo);
 	return 0;
 }
