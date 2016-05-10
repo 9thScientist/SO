@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-#define SERVER_FIFO_PATH "sobuserver_fifo"
+#define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
 #define MAX_CHILDREN 5 
 
