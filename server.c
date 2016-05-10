@@ -8,7 +8,7 @@
 #include <pwd.h>
 #include <errno.h>
 
-#define SERVER_FIFO_PATH "sobuserver_fifo"
+#define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
 #define PATH_SIZE 128 
 #define MAX_CHILDREN 5
@@ -30,16 +30,19 @@ MESSAGE toMessage(char* str);
 void backup(MESSAGE msg);
 void count_dead(int pid);
 int create_root(char *home_dir);
+void afrit();
 
 int alive;
+int server_fifo;
 
 int main(void) {
 	MESSAGE msg;
 	struct passwd *pw;
 	char buffer[BUFFER_SIZE]; 
-	int server_fifo;
 
 	signal(SIGCHLD, count_dead);
+	signal(SIGINT, afrit);
+	signal(SIGQUIT, afrit);
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
 		perror("Erro ao tentar criar canal de pedidos.");
@@ -266,3 +269,8 @@ int create_root(char *home_dir) {
 	return 0;
 }
 
+void afrit() {
+	close(server_fifo);
+	write(1, "\nVaarwel.\n", 10);
+	exit(0);
+}
