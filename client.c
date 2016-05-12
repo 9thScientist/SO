@@ -8,6 +8,7 @@
 
 #define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
+#define PATH_SIZE 128
 #define MAX_CHILDREN 5 
 
 void count_dead(int pid);
@@ -18,7 +19,7 @@ int alive;
 char** current_file;
 
 int main(int argc, char* argv[]) {
-	char message[BUFFER_SIZE];
+	char message[BUFFER_SIZE], cdir[PATH_SIZE];
 	int i, server_fifo;
 	uid_t uid;
 	pid_t pid;
@@ -60,6 +61,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	uid = getuid();
+	getcwd(cdir, sizeof(cdir));
 
 	for(i = 2; i < argc; i++) {
 		
@@ -73,7 +75,7 @@ int main(int argc, char* argv[]) {
 			signal(SIGUSR1, write_succ_message);
 			signal(SIGUSR2, write_fail_message);
 
-			sprintf(message, "%s %d %d %s", argv[1], (int) pid, (int) uid, argv[i]);
+			sprintf(message, "%s %s %d %d %s", argv[1], cdir, (int) pid, (int) uid, argv[i]);
 			write(server_fifo, message, strlen(message)+1);
 
 			pause();
