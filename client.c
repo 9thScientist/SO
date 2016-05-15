@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -61,8 +62,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	uid = getuid();
-	getcwd(cdir, sizeof(cdir));
-
+	
 	for(i = 2; i < argc; i++) {
 		
 		if (alive == MAX_CHILDREN) 
@@ -72,6 +72,8 @@ int main(int argc, char* argv[]) {
 		if (!fork()) {		
 			pid = getpid();
 			current_file = &argv[i];
+			realpath(argv[i], cdir);
+
 			signal(SIGUSR1, write_succ_message);
 			signal(SIGUSR2, write_fail_message);
 
