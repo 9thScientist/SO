@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include "message.h"
 #include "backup.h"
@@ -17,7 +18,7 @@ char* generate_hash(char *file_path);
 void send_success(pid_t pid);
 void send_error(pid_t pid);
 void count_dead(int pid);
-int create_root(char *home_dir);
+int create_root();
 void afrit();
 
 int alive; // Número de filhos atualmente vivas
@@ -25,13 +26,14 @@ int server_fifo;
 
 int main(void) {
 	MESSAGE msg;
-	struct passwd *pw;
 	char buffer[BUFFER_SIZE];
 	int err;
 
 	signal(SIGCHLD, count_dead);
 	signal(SIGINT, afrit);
 	signal(SIGQUIT, afrit);
+
+	create_root();
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
 		perror("Erro ao tentar criar canal de pedidos.");
@@ -52,9 +54,6 @@ int main(void) {
 
 		if (alive == MAX_CHILDREN)
 			pause();
-
-		pw = getpwuid(msg->uid);
-		create_root(pw->pw_dir);
 
 		alive++;
 		if (!fork()) {
@@ -77,20 +76,22 @@ int main(void) {
 
 /**
  * Verifica se existe a raiz do backup. Caso não exista, cria-a.
- * @param home_dir Home do utilizador
  * @return 1 caso crie, 0 caso contrário
  */
-int create_root(char *home_dir) {
-	struct stat st;
-	char root_dir[PATH_SIZE];
+int create_root() {
+	char root_dir[PATH_SIZE], *home;
 
-	// Se a raiz do backup não existir, cria-a.
-	sprintf(root_dir, "%s/.Backup", home_dir);
-	if (stat(root_dir, &st) == -1) {
+	home = getenv("HOME");
+
+	strncpy(root_dir, home, PATH_SIZE);
+	strncat(root_dir, "/.Backup", PATH_SIZE);
+
+	if (mkdir(root_dir,0700) != -1) {
+		strncpy(root_dir, home, PATH_SIZE);
+		strncat(root_dir, "/.Backup/data", PATH_SIZE);
 		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.Backup/data", home_dir);
-		mkdir(root_dir,0700);
-		sprintf(root_dir, "%s/.Backup/metadata", home_dir);
+		strncpy(root_dir, home, PATH_SIZE);
+		strncat(root_dir, "/.Backup/metadata", PATH_SIZE);
 		mkdir(root_dir,0700);
 		return 1;
 	}
