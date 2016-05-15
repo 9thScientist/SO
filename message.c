@@ -11,8 +11,8 @@ MESSAGE toMessage(char* str) {
 		msg->operation = BACKUP;
 	
 	s = strtok(NULL, " ");
-	msg->current_dir = malloc(strlen(s)+1);
-	strcpy(msg->current_dir, s);
+	msg->real_path = malloc(strlen(s)+1);
+	strcpy(msg->real_path, s);
 
 	s = strtok(NULL, " ");
 	msg->pid = atoi(s);
@@ -31,7 +31,7 @@ MESSAGE toMessage(char* str) {
 void freeMessage(MESSAGE m) {
 
 	if (m) {	
-		free(m->current_dir);
+		free(m->real_path);
 		free(m->argument);
 		free(m);
 	}	

@@ -7,7 +7,7 @@
 
 typedef struct message {
 	char* argument;
-	char* current_dir;
+	char* real_path;
 	int operation;
 	pid_t pid;
 	uid_t uid;
