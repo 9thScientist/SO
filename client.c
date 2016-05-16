@@ -6,10 +6,10 @@
 #include <string.h>
 
 #include <stdio.h>
+#include "message.h"
 
 #define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
-#define PATH_SIZE 128
 #define MAX_CHILDREN 5 
 
 void count_dead(int pid);
@@ -20,9 +20,8 @@ int alive;
 char** current_file;
 
 int main(int argc, char* argv[]) {
-	char message[BUFFER_SIZE], cdir[PATH_SIZE];
-	int i, server_fifo;
-	uid_t uid;
+	char message[BUFFER_SIZE], cdir[PATH_SIZE], chunk[DATA_SIZE];
+	int i, f, status, server_fifo;
 	pid_t pid;
 
 	// Verifica se os argumentos são válidos
@@ -61,10 +60,7 @@ int main(int argc, char* argv[]) {
 		return -3;
 	}
 
-	uid = getuid();
-	
 	for(i = 2; i < argc; i++) {
-		
 		if (alive == MAX_CHILDREN) 
 			pause();
 
@@ -76,12 +72,19 @@ int main(int argc, char* argv[]) {
 
 			signal(SIGUSR1, write_succ_message);
 			signal(SIGUSR2, write_fail_message);
-
-			sprintf(message, "%s %s %d %d %s", argv[1], cdir, (int) pid, (int) uid, argv[i]);
+		
+			f = open(argv[i], O_RDONLY);
+			while( (status = read(f, chunk, DATA_SIZE)) > 0) {	
+				sprintf(message, "%s %s %s %d %d %s", 
+						argv[1], cdir, argv[i], NOT_FNSHD, (int) pid, chunk);
+				write(server_fifo, message, strlen(message)+1);
+			}
+			
+			sprintf(message, "%s %s %s %d %d", 
+					argv[1], cdir, argv[i], FINISHED, (int) pid);
 			write(server_fifo, message, strlen(message)+1);
 
-			pause();
-
+			pause(); 
 			_exit(0);
 		}
 	}	
