@@ -11,12 +11,11 @@ int backup(MESSAGE msg);
 
 /**
  * Comprime o ficheiro file e guarda-o na ~/.Backup/data com o nome da hash
- * @param home_dir home do utilizador
  * @param file Nome do ficheiro a guardar
  * @param hash Hash indicativa do ficheiro
  * @erturn Código de erro
  */
- int save_data(char* home_dir, char *file, char* hash);
+ int save_data(char *file, char* hash);
 
  /**
   * Comprime o ficheiro e remove-lhe a extensão .gz

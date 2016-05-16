@@ -6,39 +6,46 @@
 #include <errno.h>
 #include <string.h>
 
-#define PATH_SIZE 128 
-
 int backup(MESSAGE msg) {
 	int err;
-	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash;
-	struct passwd *pw = getpwuid(msg->uid);
+	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash, *home;
 
+	home = getenv("HOME");
 	//Gerar uma hash a partir do ficheiro
 	hash = generate_hash(msg->argument);
 	if (!hash)	return 1;
 
 	//Comprime o ficheiro na raiz com o nome hash
-	err = save_data(pw->pw_dir, msg->argument, hash);
+	err = save_data(msg->argument, hash);
 	if (err) {
 		free(hash);
 		return 1;
 	}
 
+	strncpy(root_dir, home, PATH_SIZE);
+	strncat(root_dir, "/.Backup/data/", PATH_SIZE);
+	strncat(root_dir, hash, PATH_SIZE);
+	strncpy(ln_dir, home, PATH_SIZE);
+	strncat(ln_dir, "/.Backup/metadata/", PATH_SIZE);
+	strncat(ln_dir, hash, PATH_SIZE); 
+	
 	//Cria symlink .Backup/data/digest -> .Backup/metadata/ficheiro
-	sprintf(root_dir, "%s/.Backup/data/%s", pw->pw_dir, hash);
-	sprintf(ln_dir, "%s/.Backup/metadata/%s", pw->pw_dir, msg->argument);
 	symlink(root_dir, ln_dir);
 
 	free(hash);
+	free(home);
 
 	return 0;
 }
 
-int save_data(char* home_dir, char *file, char* hash) {
-	char data_path[PATH_SIZE];
+int save_data(char *file, char* hash) {
+	char data_path[PATH_SIZE], *home;
 	int status, nf;
 
-	sprintf(data_path, "%s/.Backup/data/%s", home_dir, hash);
+	home = getenv("HOME");
+	strncpy(data_path, home, PATH_SIZE);
+	strncat(data_path, "/.Backup/data/", PATH_SIZE);
+	strncat(data_path, hash, PATH_SIZE);
 
 	nf = open(data_path, O_CREAT | O_EXCL, 0600);
 	if (errno == EEXIST) return 0;
@@ -75,14 +82,7 @@ int compress_file(char* file_path) {
 	st = WEXITSTATUS(st);
 	if (st != 0) return st;
 
-	if (!fork()) {
-		execlp("mv", "mv", data_dir, file_path, NULL);
-		perror("Erro 2 ao tentar comprimir ficheiro");
-		_exit(2);
-	}
-
-	wait(&st);
-	st = WEXITSTATUS(st);
+	st = rename(data_dir, file_path);
 
 	return st;
 }
