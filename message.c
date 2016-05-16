@@ -17,6 +17,9 @@ MESSAGE toMessage(char* str) {
 	strncpy(msg->file_name, s, NAME_SIZE);
 	
 	s = strtok(NULL, " ");
+	msg->status = atoi(s);
+
+	s = strtok(NULL, " ");
 	msg->pid = atoi(s);
 
 	s = strtok(NULL, " ");
