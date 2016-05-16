@@ -23,6 +23,9 @@ MESSAGE toMessage(char* str) {
 	msg->pid = atoi(s);
 
 	s = strtok(NULL, " ");
+	msg->argument_size = atoi(s);
+
+	s = strtok(NULL, " ");
 	if (s) 
 		strncpy(msg->argument, s, DATA_SIZE);
 
