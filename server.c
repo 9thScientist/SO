@@ -9,7 +9,6 @@
 
 #define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
-#define PATH_SIZE 128
 #define MAX_CHILDREN 5
 
 int save_data(char* home_dir, char *file, char* hash);
@@ -26,24 +25,27 @@ int server_fifo;
 
 int main(void) {
 	MESSAGE msg;
-	char buffer[BUFFER_SIZE];
-	int err;
+	char buffer[BUFFER_SIZE], bu_root[PATH_SIZE], new_file[PATH_SIZE], *home;
+	int err, f;
 
 	signal(SIGCHLD, count_dead);
 	signal(SIGINT, afrit);
 	signal(SIGQUIT, afrit);
 
 	create_root();
+	home = getenv("HOME");
+	strncpy(bu_root, home, PATH_SIZE);
+	strncat(bu_root, "/.Backup/", PATH_SIZE);
 
 	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
-		perror("Erro ao tentar criar canal de pedidos.");
+		perror("Erro ao tentar criar canal de pedidos");
 		return -1;
 	}
 
 	server_fifo = open(SERVER_FIFO_PATH, O_RDONLY);
 
 	if (server_fifo == -1) {
-		perror("Erro ao ler pedidos.");
+		perror("Erro ao ler pedidos");
 		return -2;
 	}
 
@@ -51,6 +53,19 @@ int main(void) {
 		if (!read(server_fifo, buffer, BUFFER_SIZE)) continue;
 
 		msg = toMessage(buffer);
+
+		strncpy(new_file, bu_root, PATH_SIZE);
+		strncat(new_file, msg->file_name, PATH_SIZE);
+		f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0700);
+		write(f, msg->argument, msg->argument_size);
+		close(f);
+
+		if (msg->status == NOT_FNSHD) continue;
+		else if (msg->status == ERROR) {
+			send_error(msg->pid);
+			free(msg);
+			exit(1);
+		}
 
 		if (alive == MAX_CHILDREN)
 			pause();
@@ -64,9 +79,10 @@ int main(void) {
 						 break;
 
 			}
-			
+		
 			err ? send_error(msg->pid) : send_success(msg->pid);
-			_exit(0);
+			free(msg);
+			_exit(err);
 		}
 
 	}
