@@ -10,8 +10,8 @@
 
 //sizeof(message) = 4kbytes
 typedef struct message {
-	char real_path[PATH_SIZE];
 	char argument[DATA_SIZE];
+	char real_path[PATH_SIZE];
 	int operation;
 	pid_t pid;
 } *MESSAGE;
