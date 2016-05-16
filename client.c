@@ -75,12 +75,12 @@ int main(int argc, char* argv[]) {
 		
 			f = open(argv[i], O_RDONLY);
 			while( (status = read(f, chunk, DATA_SIZE)) > 0) {	
-				sprintf(message, "%s %s %s %d %d %s", 
-						argv[1], cdir, argv[i], NOT_FNSHD, (int) pid, chunk);
+				sprintf(message, "%s %s %s %d %d %d %s", 
+						argv[1], cdir, argv[i], NOT_FNSHD, (int) pid, status, chunk);
 				write(server_fifo, message, strlen(message)+1);
 			}
 			
-			sprintf(message, "%s %s %s %d %d", 
+			sprintf(message, "%s %s %s %d %d 0", 
 					argv[1], cdir, argv[i], FINISHED, (int) pid);
 			write(server_fifo, message, strlen(message)+1);
 
