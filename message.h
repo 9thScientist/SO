@@ -25,6 +25,7 @@ typedef struct message {
 
 /**
  * Cria uma mensagem a partir duma string
+ * <operacao> <path> <nome do ficheiro> <status> <pid> <CHUNK>
  * @param str string
  * @return mensagem
  */
