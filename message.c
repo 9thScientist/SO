@@ -2,6 +2,20 @@
 #include <string.h>
 #include <stdlib.h>
 
+MESSAGE init_message(char* operation, pid_t pid, char* file_path, 
+						char* chunk, int chunk_size, int status) {
+	MESSAGE m = malloc(sizeof(*m));
+
+	m->operation = strcmp(operation, "backup");
+	m->status = status;
+	m->chunk_size = chunk_size;
+	m->pid = pid;
+	strncpy(m->file_path, file_path, PATH_SIZE);
+	strncpy(m->chunk, chunk, CHUNK_SIZE);
+
+	return m;
+}
+
 MESSAGE toMessage(char* str) {
 	MESSAGE msg = malloc(sizeof(*msg));
 	char* s;
@@ -11,11 +25,8 @@ MESSAGE toMessage(char* str) {
 		msg->operation = BACKUP;
 	
 	s = strtok(NULL, " ");
-	strncpy(msg->real_path, s, PATH_SIZE);
+	strncpy(msg->file_path, s, PATH_SIZE);
 
-	s = strtok(NULL, " ");
-	strncpy(msg->file_name, s, NAME_SIZE);
-	
 	s = strtok(NULL, " ");
 	msg->status = atoi(s);
 
@@ -23,11 +34,11 @@ MESSAGE toMessage(char* str) {
 	msg->pid = atoi(s);
 
 	s = strtok(NULL, " ");
-	msg->argument_size = atoi(s);
+	msg->chunk_size = atoi(s);
 
 	s = strtok(NULL, " ");
 	if (s) 
-		strncpy(msg->argument, s, DATA_SIZE);
+		strncpy(msg->chunk, s, CHUNK_SIZE);
 
 	return msg;
 }
