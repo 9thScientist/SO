@@ -11,28 +11,18 @@ MESSAGE toMessage(char* str) {
 		msg->operation = BACKUP;
 	
 	s = strtok(NULL, " ");
-	msg->real_path = malloc(strlen(s)+1);
-	strcpy(msg->real_path, s);
+	strncpy(msg->real_path, s, PATH_SIZE);
 
 	s = strtok(NULL, " ");
 	msg->pid = atoi(s);
 
 	s = strtok(NULL, " ");
-	msg->uid = atoi(s);
-
-	s = strtok(NULL, " ");
-	if (s) {
-		msg->argument = malloc(strlen(s)+1);
-	}	strcpy(msg->argument, s);
+	if (s) 
+		strncpy(msg->argument, s, DATA_SIZE);
 
 	return msg;
 }
 
 void freeMessage(MESSAGE m) {
-
-	if (m) {	
-		free(m->real_path);
-		free(m->argument);
-		free(m);
-	}	
+	free(m);	
 }
