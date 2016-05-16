@@ -5,9 +5,10 @@
 #include <pwd.h>
 
 #define BACKUP 0
-#define PATH_SIZE 128
-#define DATA_SIZE 4096 
+#define PATH_SIZE 1024 
+#define DATA_SIZE 3056 
 
+//sizeof(message) = 4kbytes
 typedef struct message {
 	char real_path[PATH_SIZE];
 	char argument[DATA_SIZE];
