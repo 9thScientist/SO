@@ -5,7 +5,7 @@ all: client server
 server: server.c backup.c message.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-client: client.c
+client: client.c message.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 .PHONY: clear
@@ -15,8 +15,8 @@ clear:
 
 .PHONY: install
 install:
-	-@cp server /usr/bin/sobuserv
-	-@cp client /usr/bin/sobucli
+	-@mv server /usr/bin/sobuserv
+	-@mv client /usr/bin/sobucli
 	-@if [ -a /usr/share/sobuserv ] ; \
 	  then \
 		  rm -rf /usr/share/sobuserv ; \
