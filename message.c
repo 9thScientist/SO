@@ -12,7 +12,7 @@ MESSAGE init_message(char* operation, uid_t uid, pid_t pid, char* file_path,
 	m->pid = pid;
 	m->uid = uid;
 	strncpy(m->file_path, file_path, PATH_SIZE);
-	memcpy(m->chunk, chunk, CHUNK_SIZE);
+	memcpy(m->chunk, chunk, m->chunk_size);
 
 	return m;
 }
