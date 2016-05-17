@@ -5,14 +5,13 @@
 #include <pwd.h>
 
 #define BACKUP 0
-#define PATH_SIZE 1008
-#define CHUNK_SIZE 3056 
+#define PATH_SIZE 1024
+#define CHUNK_SIZE 4096 
 
 #define NOT_FNSHD 1 //O ficheiro não está completo
 #define FINISHED  0 //O ficheiro terminou
 #define ERROR -1 //Houve um erro ao tentar ler do ficheiro
 
-//sizeof(message) = 4kbytes
 typedef struct message {
 	char chunk[CHUNK_SIZE];
 	char file_path[PATH_SIZE];
@@ -22,14 +21,6 @@ typedef struct message {
 	pid_t pid;
 	uid_t uid;
 } *MESSAGE;
-
-/**
- * Cria uma mensagem a partir duma string
- * <operacao> <path> <nome do ficheiro> <status> <pid> <argument_size> <argument>
- * @param str string
- * @return mensagem
- */
-MESSAGE toMessage(char* str);
 
 /**
  * Cria uma nova message.
@@ -44,4 +35,10 @@ MESSAGE toMessage(char* str);
 MESSAGE init_message(char* operation, uid_t uid, pid_t pid, char* file_path, 
 						char* chunk, int chunk_size, int status); 
 
+/**
+ * Cria uma mensagem vazia
+ */
+MESSAGE empty_message(); 
+char* get_file_name(char *file_path); 
+void freeMessage(MESSAGE m); 
 #endif

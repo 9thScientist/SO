@@ -12,41 +12,23 @@ MESSAGE init_message(char* operation, uid_t uid, pid_t pid, char* file_path,
 	m->pid = pid;
 	m->uid = uid;
 	strncpy(m->file_path, file_path, PATH_SIZE);
-	strncpy(m->chunk, chunk, CHUNK_SIZE);
+	memcpy(m->chunk, chunk, CHUNK_SIZE);
 
 	return m;
 }
 
-MESSAGE toMessage(char* str) {
-	MESSAGE msg = malloc(sizeof(*msg));
-	char* s;
+MESSAGE empty_message() {
+	MESSAGE m = malloc(sizeof(*m));
 
-	s = strtok(str, " ");
-	if (!strcmp(s, "backup"))
-		msg->operation = BACKUP;
-	
-	s = strtok(NULL, " ");
-	strncpy(msg->file_path, s, PATH_SIZE);
-
-	s = strtok(NULL, " ");
-	msg->status = atoi(s);
-
-	s = strtok(NULL, " ");
-	msg->pid = atoi(s);
-	
-	s = strtok(NULL, " ");
-	msg->uid = atoi(s);
-
-	s = strtok(NULL, " ");
-	msg->chunk_size = atoi(s);
-
-	s = strtok(NULL, " ");
-	if (s) 
-		strncpy(msg->chunk, s, CHUNK_SIZE);
-
-	return msg;
+	return m;
 }
 
 void freeMessage(MESSAGE m) {
 	free(m);	
+}
+
+char* get_file_name(char *file_path) {
+
+	char* base = strrchr(file_path,'/');
+	return base ? base+1 : file_path;
 }
