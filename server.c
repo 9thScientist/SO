@@ -48,7 +48,10 @@ int main(void) {
 	while(1) {
 		msg = empty_message();
 		//Este if->continue está sempre a entrar em ciclo
-		if (!read(server_fifo, msg, sizeof(*msg))) continue;
+		if (!read(server_fifo, msg, sizeof(*msg))) {
+			freeMessage(msg);
+			continue;
+		}
 		file_name = get_file_name(msg->file_path);
 		strncpy(new_file, bu_root, PATH_SIZE);
 		strncat(new_file, file_name, PATH_SIZE);
