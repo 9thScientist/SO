@@ -6,64 +6,51 @@
 #include <errno.h>
 #include <string.h>
 
+#define BUFFER_SIZE 512 
+#define DATA_PATH "/.Backup/data/"
+#define METADATA_PATH "/.Backup/metadata/"
+
 int backup(MESSAGE msg) {
 	int err;
-	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash, *home;
-
+	char root_dir[PATH_SIZE], ln_dir[PATH_SIZE], *hash, *home, *f_name;
+	
 	home = getenv("HOME");
-	//Gerar uma hash a partir do ficheiro
-	hash = generate_hash(msg->argument);
-	if (!hash)	return 1;
+	f_name = get_file_name(msg->file_path);
 
-	//Comprime o ficheiro na raiz com o nome hash
-	err = save_data(msg->argument, hash);
-	if (err) {
-		free(hash);
-		return 1;
-	}
+	strncpy(root_dir, home, PATH_SIZE);
+	strncat(root_dir, DATA_PATH, PATH_SIZE); 
+	strncpy(ln_dir, root_dir, PATH_SIZE);
+	strncat(root_dir, f_name, PATH_SIZE);
+
+getchar();
+	//Gerar uma hash a partir do ficheiro
+	hash = generate_hash(root_dir);
+	if (!hash) return 1;
+printf("Maria Amélia\n");
+
+	strncat(ln_dir, hash, PATH_SIZE);
+	if (access(ln_dir, F_OK) == -1) {
+		rename(root_dir, ln_dir); 
+		//Comprime o ficheiro na raiz com o nome hash
+		err = compress_file(ln_dir);
+		if (err) {
+			free(hash);
+			return 1;
+		}
+	} else remove(root_dir);
 
 	strncpy(root_dir, home, PATH_SIZE);
 	strncat(root_dir, "/.Backup/data/", PATH_SIZE);
 	strncat(root_dir, hash, PATH_SIZE);
 	strncpy(ln_dir, home, PATH_SIZE);
 	strncat(ln_dir, "/.Backup/metadata/", PATH_SIZE);
-	strncat(ln_dir, hash, PATH_SIZE); 
+	strncat(ln_dir, f_name, PATH_SIZE); 
 	
 	//Cria symlink .Backup/data/digest -> .Backup/metadata/ficheiro
+	printf("symlinkg %s -> %s", ln_dir, root_dir); getchar();
 	symlink(root_dir, ln_dir);
 
 	free(hash);
-	free(home);
-
-	return 0;
-}
-
-int save_data(char *file, char* hash) {
-	char data_path[PATH_SIZE], *home;
-	int status, nf;
-
-	home = getenv("HOME");
-	strncpy(data_path, home, PATH_SIZE);
-	strncat(data_path, "/.Backup/data/", PATH_SIZE);
-	strncat(data_path, hash, PATH_SIZE);
-
-	nf = open(data_path, O_CREAT | O_EXCL, 0600);
-	if (errno == EEXIST) return 0;
-	close(nf);
-
-	if (!fork()) {
-		execlp("cp", "cp", file, data_path, NULL);
-		perror("Erro ao tentar salvar ficheiro.");
-		_exit(1);
-	}
-
-	wait(&status);
-	status = WEXITSTATUS(status);
-	if (status == 0)
-		status = compress_file(data_path);
-
-	if (status != 0) return -1;
-
 	return 0;
 }
 
@@ -88,11 +75,10 @@ int compress_file(char* file_path) {
 }
 
 char* generate_hash(char *file_path) {
-	char sha1sum[PATH_SIZE], *hash, *ret = NULL;
+	char sha1sum[BUFFER_SIZE], *hash, *ret = NULL;
 	int pp[2], status;
 
 	pipe(pp);
-
 	if (!fork()) {
 		close(pp[0]);
 		dup2(pp[1], 1);
