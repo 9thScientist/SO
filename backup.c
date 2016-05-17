@@ -22,11 +22,9 @@ int backup(MESSAGE msg) {
 	strncpy(ln_dir, root_dir, PATH_SIZE);
 	strncat(root_dir, f_name, PATH_SIZE);
 
-getchar();
 	//Gerar uma hash a partir do ficheiro
 	hash = generate_hash(root_dir);
 	if (!hash) return 1;
-printf("Maria Amélia\n");
 
 	strncat(ln_dir, hash, PATH_SIZE);
 	if (access(ln_dir, F_OK) == -1) {
@@ -47,7 +45,6 @@ printf("Maria Amélia\n");
 	strncat(ln_dir, f_name, PATH_SIZE); 
 	
 	//Cria symlink .Backup/data/digest -> .Backup/metadata/ficheiro
-	printf("symlinkg %s -> %s", ln_dir, root_dir); getchar();
 	symlink(root_dir, ln_dir);
 
 	free(hash);
