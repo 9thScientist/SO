@@ -4,14 +4,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-
+#include <errno.h>
 #include <stdio.h>
 #include "message.h"
 
-#define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
 #define MAX_CHILDREN 5 
 
+int get_server_pipe(char* fifo_path, int size);
 void count_dead(int pid);
 void write_succ_message();
 void write_fail_message();
@@ -20,9 +20,12 @@ int alive;
 char** current_file;
 
 int main(int argc, char* argv[]) {
-	char message[BUFFER_SIZE], cdir[PATH_SIZE], chunk[DATA_SIZE];
+	MESSAGE msg;
+	char cdir[PATH_SIZE], chunk[CHUNK_SIZE];
+	char server_fifo_path[BUFFER_SIZE];
 	int i, f, status, server_fifo;
 	pid_t pid;
+	uid_t uid = getuid();
 
 	// Verifica se os argumentos são válidos
 	if (argc == 1 || (strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
@@ -50,10 +53,12 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
+
 	signal(SIGCHLD, count_dead);
 
 	// Prepara e envia informação a partir dos argumentos
-	server_fifo = open(SERVER_FIFO_PATH, O_WRONLY);
+	get_server_pipe(server_fifo_path, PATH_SIZE);
+	server_fifo = open(server_fifo_path, O_WRONLY);
 
 	if (server_fifo == -1){
 		perror("Erro ao tentar comunicar com servidor.");
@@ -74,16 +79,19 @@ int main(int argc, char* argv[]) {
 			signal(SIGUSR2, write_fail_message);
 		
 			f = open(argv[i], O_RDONLY);
-			while( (status = read(f, chunk, DATA_SIZE)) > 0) {	
-				sprintf(message, "%s %s %s %d %d %d %s", 
-						argv[1], cdir, argv[i], NOT_FNSHD, (int) pid, status, chunk);
-				write(server_fifo, message, strlen(message)+1);
+			while( (status = read(f, chunk, CHUNK_SIZE)) > 0) {
+				msg = init_message(argv[1], uid, pid, cdir, chunk, status, NOT_FNSHD);
+				write(server_fifo, msg, sizeof(*msg));
+				printf("file: %s\nread: %d\n", msg->file_path, msg->chunk_size);
+				freeMessage(msg);
 			}
+					
+			msg = init_message(argv[1], uid, pid, cdir, "", 0, FINISHED);
+			write(server_fifo, msg, sizeof(*msg));
+			printf("file: %s\nFINISHED\n", msg->file_path);
 			
-			sprintf(message, "%s %s %s %d %d 0", 
-					argv[1], cdir, argv[i], FINISHED, (int) pid);
-			write(server_fifo, message, strlen(message)+1);
-
+			freeMessage(msg);
+			close(f);
 			pause(); 
 			_exit(0);
 		}
@@ -92,6 +100,30 @@ int main(int argc, char* argv[]) {
 	while (alive > 0) wait(NULL);
 
 	close(server_fifo);
+	return 0;
+}
+
+/**
+ * Coloca o path para o pipe do servidor em fifo_path
+ */
+int get_server_pipe(char* fifo_path, int size) {
+	char server_user[BUFFER_SIZE], info_path[PATH_SIZE];
+	int file;
+	uid_t uid;
+	struct passwd *pw;
+
+	strncpy(info_path, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	file = open(info_path, O_RDONLY);
+	if (errno == ENOENT) return -1;
+
+	read(file, server_user, BUFFER_SIZE);
+	close(file);
+	
+	uid = (uid_t) atoi(server_user);
+	pw = getpwuid(uid);
+	strncpy(fifo_path, pw->pw_dir, size);
+	strncat(fifo_path, "/.Backup/sobupipe", size);	
+
 	return 0;
 }
 

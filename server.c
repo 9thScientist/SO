@@ -7,65 +7,64 @@
 #include "message.h"
 #include "backup.h"
 
-#define SERVER_FIFO_PATH "/tmp/sobuserver_fifo"
 #define BUFFER_SIZE 512
 #define MAX_CHILDREN 5
 
-int save_data(char* home_dir, char *file, char* hash);
-int compress_file(char* file_path);
-char* generate_hash(char *file_path);
+#define DATA_PATH "/.Backup/data/"
+#define METADATA_PATH "/.Backup/metadata/"
+
 void send_success(pid_t pid);
 void send_error(pid_t pid);
 void count_dead(int pid);
 int create_root();
-void afrit();
+void check_in();
 
 int alive; // Número de filhos atualmente vivas
 int server_fifo;
 
 int main(void) {
-	MESSAGE msg;
-	char buffer[BUFFER_SIZE], bu_root[PATH_SIZE], new_file[PATH_SIZE], *home;
+	MESSAGE msg; 
+	char bu_root[PATH_SIZE], new_file[PATH_SIZE], *home, *file_name;
 	int err, f;
 
 	signal(SIGCHLD, count_dead);
-	signal(SIGINT, afrit);
-	signal(SIGQUIT, afrit);
 
 	create_root();
+	check_in();
 	home = getenv("HOME");
 	strncpy(bu_root, home, PATH_SIZE);
-	strncat(bu_root, "/.Backup/", PATH_SIZE);
+	strncat(bu_root, "/.Backup/sobupipe", PATH_SIZE);
 
-	if (access(SERVER_FIFO_PATH, F_OK) == -1 && mkfifo(SERVER_FIFO_PATH, 0600) == -1) {
-		perror("Erro ao tentar criar canal de pedidos");
-		return -1;
-	}
-
-	server_fifo = open(SERVER_FIFO_PATH, O_RDONLY);
+	server_fifo = open(bu_root, O_RDONLY);
 
 	if (server_fifo == -1) {
 		perror("Erro ao ler pedidos");
 		return -2;
 	}
+	
+	strncpy(bu_root, home, PATH_SIZE);
+	strncat(bu_root, DATA_PATH, PATH_SIZE);
 
 	while(1) {
-		if (!read(server_fifo, buffer, BUFFER_SIZE)) continue;
-
-		msg = toMessage(buffer);
-
+		msg = empty_message();
+		printf("I'm listening!!!\n");
+		if (!read(server_fifo, msg, sizeof(*msg))) continue;
+		file_name = get_file_name(msg->file_path);
 		strncpy(new_file, bu_root, PATH_SIZE);
-		strncat(new_file, msg->file_name, PATH_SIZE);
-		f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0700);
-		write(f, msg->argument, msg->argument_size);
+		strncat(new_file, file_name, PATH_SIZE);
+		f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0600);
+		write(f, msg->chunk, msg->chunk_size);
 		close(f);
 
-		if (msg->status == NOT_FNSHD) continue;
-		else if (msg->status == ERROR) {
+		if (msg->status == NOT_FNSHD) {
+			freeMessage(msg);
+			continue;
+		} else if (msg->status == ERROR) {
 			send_error(msg->pid);
-			free(msg);
+			freeMessage(msg);
 			exit(1);
 		}
+	printf("file: %s\nFINISHED\n", msg->file_path); getchar();
 
 		if (alive == MAX_CHILDREN)
 			pause();
@@ -79,7 +78,7 @@ int main(void) {
 						 break;
 
 			}
-		
+			
 			err ? send_error(msg->pid) : send_success(msg->pid);
 			free(msg);
 			_exit(err);
@@ -89,6 +88,7 @@ int main(void) {
 
 	return 0;
 }
+
 
 /**
  * Verifica se existe a raiz do backup. Caso não exista, cria-a.
@@ -101,18 +101,36 @@ int create_root() {
 
 	strncpy(root_dir, home, PATH_SIZE);
 	strncat(root_dir, "/.Backup", PATH_SIZE);
-
-	if (mkdir(root_dir,0700) != -1) {
+	
+	if (mkdir(root_dir,0766) != -1) {
 		strncpy(root_dir, home, PATH_SIZE);
-		strncat(root_dir, "/.Backup/data", PATH_SIZE);
-		mkdir(root_dir,0700);
+		strncat(root_dir, DATA_PATH , PATH_SIZE);
+		mkdir(root_dir,0744);
+		
 		strncpy(root_dir, home, PATH_SIZE);
-		strncat(root_dir, "/.Backup/metadata", PATH_SIZE);
-		mkdir(root_dir,0700);
+		strncat(root_dir, METADATA_PATH , PATH_SIZE);
+		mkdir(root_dir,0744);
+	
+		strncpy(root_dir, home, PATH_SIZE);
+		strncat(root_dir, "/.Backup/sobupipe", PATH_SIZE);
+		mkfifo(root_dir, 0777);
 		return 1;
 	}
 
 	return 0;
+}
+
+void check_in() {
+	char fp[PATH_SIZE], uid_str[100];
+	int f;
+	uid_t uid = getuid();
+
+	strncpy(fp, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	sprintf(uid_str, "%d", uid);
+
+	f = open(fp, O_WRONLY);	
+	write(f, uid_str, strlen(uid_str));
+	close(f);
 }
 
 void send_success(pid_t pid) {
@@ -128,9 +146,3 @@ void count_dead(int pid) {
 	alive--;
 }
 
-void afrit() {
-	close(server_fifo);
-	unlink(SERVER_FIFO_PATH);
-	write(1, "\nVaarwel.\n", 10);
-	exit(0);
-}
