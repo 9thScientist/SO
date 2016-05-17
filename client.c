@@ -82,17 +82,15 @@ int main(int argc, char* argv[]) {
 			while( (status = read(f, chunk, CHUNK_SIZE)) > 0) {
 				msg = init_message(argv[1], uid, pid, cdir, chunk, status, NOT_FNSHD);
 				write(server_fifo, msg, sizeof(*msg));
-				printf("file: %s\nread: %d\n", msg->file_path, msg->chunk_size);
 				freeMessage(msg);
 			}
 					
 			msg = init_message(argv[1], uid, pid, cdir, "", 0, FINISHED);
 			write(server_fifo, msg, sizeof(*msg));
-			printf("file: %s\nFINISHED\n", msg->file_path);
-			
-			freeMessage(msg);
-			close(f);
+
 			pause(); 
+			close(f);
+			freeMessage(msg);
 			_exit(0);
 		}
 	}	
