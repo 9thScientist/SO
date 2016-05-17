@@ -20,6 +20,7 @@ typedef struct message {
 	int status;
 	int chunk_size;
 	pid_t pid;
+	uid_t uid;
 } *MESSAGE;
 
 /**
@@ -33,13 +34,14 @@ MESSAGE toMessage(char* str);
 /**
  * Cria uma nova message.
  * @param operation 
+ * @param uid User ID
  * @param pid PID do processo da origem da mensagem
  * @param file_path Path real do ficheiro
  * @param chunk Pedaço de ficheiro a enviar
  * @param chunk_size Tamanho do pedaço
  * @param status NOT_FNSHD caso ainda haja mais chunks, FINISHED caso tenha terminado, ERROR caso a leitura do ficheiro deu um erro
  */
-MESSAGE init_message(char* operation, pid_t pid, char* file_path, 
+MESSAGE init_message(char* operation, uid_t uid, pid_t pid, char* file_path, 
 						char* chunk, int chunk_size, int status); 
 
 #endif
