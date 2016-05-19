@@ -19,18 +19,14 @@ stop:
 
 .PHONY: install
 install:
-	-@mv server /usr/bin/sobuserv
-	-@mv client /usr/bin/sobucli
-	-@if [ -a /usr/share/sobuserv ] ; \
+	-@if [ ! -d $(HOME)/bin ] ; \
 	  then \
-		  rm -rf /usr/share/sobuserv ; \
+		  mkdir $(HOME)/bin; \
 	  fi;
-	-@mkdir /usr/share/sobuserv 
-	-@touch /usr/share/sobuserv/running_user 
-	-@chmod 666 /usr/share/sobuserv/running_user 
+	-@mv server $(HOME)/bin/sobuserv
+	-@mv client $(HOME)/bin/sobucli
 
 .PHONY: uninstall
 uninstall:
-	-@rm -rf /usr/share/sobuserv
-	-@rm /usr/bin/sobuserv
-	-@rm /usr/bin/sobucli
+	-@rm $(HOME)/bin/sobuserv
+	-@rm $(HOME)/bin/sobucli
