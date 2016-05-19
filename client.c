@@ -19,7 +19,7 @@ void write_succ_message();
 void write_fail_message();
 
 int alive;
-char** current_file;
+char* current_file;
 int ret;
 
 int main(int argc, char* argv[]) {
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "backup") || !strcmp(argv[1], "restore")) {
+	if (!strcmp(argv[1], "backup")) {
 		for(i = 2; i < argc; i++) {
 			if (access(argv[i], F_OK) == -1) {
 				fprintf(stderr, "Ficheiro '%s' não existe.\n", argv[i]);
@@ -79,7 +79,9 @@ int main(int argc, char* argv[]) {
 
 		alive++;
 		if (!fork()) {		
-			
+		
+			current_file = get_file_name(argv[i]);
+
 			if (!strcmp(argv[1], "backup")) backup(argv[i], server_fifo);
 			else if (!strcmp(argv[1], "restore")) restore(argv[i], pp, server_fifo);
 
@@ -106,7 +108,7 @@ void backup(char *file, int server_fifo) {
 	pid = getpid();
 	realpath(file, cdir);
 
-	signal(SIGUSR1, write_succ_message);
+	signal(SIGUSR1, write_succ_message);	
 	signal(SIGUSR2, write_fail_message);
 	
 	f = open(file, O_RDONLY);
@@ -118,10 +120,12 @@ void backup(char *file, int server_fifo) {
 	change_message(msg, "backup", uid, pid, cdir, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
 
-	printf("pid: %d\n", pid);
-	//pause(); 
-	raise(SIGSTOP);
-	printf("viste?\n");
+	pause(); 
+	
+	if (!ret) {
+		printf("%s: copiado\n", current_file);
+	} else printf("%s: erro ao copiar\n", current_file);
+
 	close(f);
 	freeMessage(msg);
 }
@@ -177,12 +181,12 @@ void count_dead(int pid) {
 
 // escreve a mensagem de sucesso enviada pelo utilizador
 void write_succ_message() {
-	printf("%s: copiado\n", *current_file);
+	//printf("%s: copiado\n", *current_file);
 	ret = 0;
 }
 
 // escreve a mensagem de erro enviada pelo utilizador
 void write_fail_message() {
-	printf("%s: ERRO - Impossível copiar\n", *current_file);
+	//printf("%s: ERRO - Impossível copiar\n", *current_file);
 	ret = 1;
 }

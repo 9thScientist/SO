@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "message.h"
 #include "backup.h"
+#include "restore.h"
 
 #define BUFFER_SIZE 512
 #define MAX_CHILDREN 5
@@ -44,26 +45,25 @@ int main(void) {
 	strncpy(bu_root, home, PATH_SIZE);
 	strncat(bu_root, DATA_PATH, PATH_SIZE);
 
-
-
 	if (!fork()) { 
 	server_fifo = open(server_fifo_path, O_RDONLY);
 	while(1) {
 		msg = empty_message();
-		printf("a ler...\n");
 		if (!read(server_fifo, msg, sizeof(*msg) )) {
 			close(server_fifo);
 			server_fifo = open(server_fifo_path, O_RDONLY);
 			freeMessage(msg);
 			continue;
 		}
-	printf("file: %s\nread: %d\n", msg->file_path, msg->chunk_size);
-		file_name = get_file_name(msg->file_path);
-		strncpy(new_file, bu_root, PATH_SIZE);
-		strncat(new_file, file_name, PATH_SIZE);
-		f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0600);
-		write(f, msg->chunk, msg->chunk_size);
-		close(f);
+
+		if (msg->operation == BACKUP) {
+			file_name = get_file_name(msg->file_path);
+			strncpy(new_file, bu_root, PATH_SIZE);
+			strncat(new_file, file_name, PATH_SIZE);
+			f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0600);
+			write(f, msg->chunk, msg->chunk_size);
+			close(f);
+		}
 
 		if (msg->status == NOT_FNSHD) {
 			freeMessage(msg);
@@ -82,19 +82,14 @@ int main(void) {
 			switch(msg->operation) {
 				case BACKUP: err = backup(msg);
 							 break;
+				case RESTORE: err = restore(msg);
+							 break;
 				default: err = 1;
 						 break;
 
 			}
 			
-			printf("A enviar %d para %d\n", err, msg->pid);
-			printf("SEND!\n");
-			kill(msg->pid, SIGCONT);
-			sleep(2);
-			printf("THERE!\n");
 			err ? send_error(msg->pid) : send_success(msg->pid);
-			sleep(5);
-			printf("afrit\n");
 			free(msg);
 			_exit(err);
 		}
