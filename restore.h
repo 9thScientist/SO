@@ -3,8 +3,6 @@
 
 #include "message.h"
 
-#define N_EXIST -1
-
 int restore(MESSAGE msg);
 
 #endif

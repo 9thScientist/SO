@@ -1,11 +1,12 @@
-#include "restore.h"
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "restore.h"
 
+#define BACKUP_PATH "/.Backup/" 
 #define DATA_PATH "/.Backup/data/"
 #define METADATA_PATH "/.Backup/metadata/"
 #define PATHS_PATH "/.Backup/paths/"
@@ -18,6 +19,7 @@ void remove_gz(char* file_path);
 
 int restore(MESSAGE msg) {
 	char *f_name, aux_path[PATH_SIZE], file_path[PATH_SIZE];
+	int s;
 
 	f_name = get_file_name(msg->file_path);
 	
@@ -25,14 +27,19 @@ int restore(MESSAGE msg) {
 	strncat(file_path, METADATA_PATH, PATH_SIZE);
 	strncat(file_path, f_name, PATH_SIZE);
 
-	readlink(file_path, aux_path, PATH_SIZE);	
+	s = readlink(file_path, aux_path, PATH_SIZE);	
+	aux_path[s] = 0;
 
-	strncpy(file_path, aux_path, PATH_SIZE);
+	strncpy(file_path, getenv("HOME"), PATH_SIZE);
+	strncat(file_path, BACKUP_PATH, PATH_SIZE);
+	strncat(file_path, f_name, PATH_SIZE);
 	strncat(file_path, ".gz", PATH_SIZE);
 
 	copy(aux_path, file_path);
 	decompress(file_path);
 	send_file(file_path, msg->uid);
+
+	unlink(file_path);
 
 	return 0;
 }
@@ -49,7 +56,8 @@ void send_file(char* file_path, uid_t uid) {
 	MESSAGE msg = empty_message();
 
 	sprintf(client_pipe_path, "/tmp/sobu/%d", (int) uid);
-	
+	printf("A ler do pipe: %s\n", client_pipe_path);
+
 	client_pipe = open(client_pipe_path, O_WRONLY);
 	
 	file = open(file_path, O_RDONLY);
@@ -75,19 +83,21 @@ void send_file(char* file_path, uid_t uid) {
  */
 char* get_original_path(char *file, char* original_path, int size) {
 	char path[PATH_SIZE];
+	int s;
 
 	strncpy(path, getenv("HOME"), PATH_SIZE);
 	strncat(path, PATHS_PATH, PATH_SIZE);	
 	strncat(path, file, PATH_SIZE);	
 
-	readlink(path, original_path, size);
+	s = readlink(path, original_path, size);
+	original_path[s] = 0; 
 
 	return original_path;
 }
 
 int copy(char* src, char* dest) {
 	int st;
-
+	
 	if (!fork()) {
 		execlp("cp", "cp", src, dest, NULL);
 		perror("Erro ao tentar buscar ficheiro");
@@ -99,6 +109,7 @@ int copy(char* src, char* dest) {
 }
 
 void decompress(char* file_path) {
+
 	if (!fork()) {
 		execlp("gzip", "gzip", "-d", file_path, NULL);
 		perror("Erro ao tentar decomprimir ficheiro");
