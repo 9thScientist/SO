@@ -141,13 +141,11 @@ void restore(char *file,char* client_fifo_path, int server_fifo) {
 
 	client_fifo = open(client_fifo_path, O_RDONLY);
 
-	printf("ler...\n");
 	while(st) {
 		if (!read(client_fifo, msg, sizeof(*msg))) continue;
 		st = msg->status;
 		f = open(msg->file_path, O_CREAT | O_WRONLY | O_APPEND, 0644);
 		write(f, msg->chunk, msg->chunk_size);
-		perror("file");
 
 		close(f);
 	}

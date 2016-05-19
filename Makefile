@@ -15,18 +15,14 @@ clear:
 
 .PHONY: stop
 stop:
-	pkill -f sobuserv
+	pkill -f sobusrv
 
 .PHONY: install
 install:
-	-@if [ ! -d $(HOME)/bin ] ; \
-	  then \
-		  mkdir $(HOME)/bin; \
-	  fi;
-	-@mv server $(HOME)/bin/sobuserv
-	-@mv client $(HOME)/bin/sobucli
+	-@sudo mv server /bin/sobusrv
+	-@sudo mv client /bin/sobucli
 
 .PHONY: uninstall
 uninstall:
-	-@rm $(HOME)/bin/sobuserv
-	-@rm $(HOME)/bin/sobucli
+	-@rm /bin/sobusrv
+	-@rm /bin/sobucli

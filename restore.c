@@ -66,13 +66,11 @@ void send_file(char* file_path, uid_t uid, int client_pipe) {
 
 	while((sz = read(file, chunk, CHUNK_SIZE)))	{
 		change_message(msg, "restore", uid, 0, original_path, chunk, sz, NOT_FNSHD);
-		printf("file: %s\n write: %d\n", msg->file_path, msg->chunk_size);
 		write(client_pipe, msg, sizeof(*msg));
 	}
 		
 	change_message(msg, "restore", uid, 0, original_path, "", 0, FINISHED);
 	write(client_pipe, msg, sizeof(*msg));
-	printf("file: %s\n FINISHED\n", original_path);
 	
 	freeMessage(msg);
 	close(file);
