@@ -165,7 +165,7 @@ int get_server_pipe(char* fifo_path, int size) {
 	uid_t uid;
 	struct passwd *pw;
 
-	strncpy(info_path, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	strncpy(info_path, "/tmp/sobu_running_user", PATH_SIZE);
 	file = open(info_path, O_RDONLY);
 	if (errno == ENOENT) return -1;
 
@@ -189,7 +189,7 @@ int get_server_root(char* server_root, int size) {
 	uid_t uid;
 	struct passwd *pw;
 
-	strncpy(info_path, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	strncpy(info_path, "/tmp/sobu_running_user", PATH_SIZE);
 	file = open(info_path, O_RDONLY);
 	if (errno == ENOENT) return -1;
 

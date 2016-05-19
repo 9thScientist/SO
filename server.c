@@ -138,10 +138,10 @@ void check_in() {
 	int f;
 	uid_t uid = getuid();
 
-	strncpy(fp, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	strncpy(fp, "/tmp/sobu_running_user", PATH_SIZE);
 	sprintf(uid_str, "%d", uid);
 
-	f = open(fp, O_WRONLY);	
+	f = open(fp, O_CREAT | O_WRONLY, 0644);	
 	write(f, uid_str, strlen(uid_str));
 	close(f);
 }
