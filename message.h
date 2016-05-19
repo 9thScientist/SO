@@ -5,6 +5,7 @@
 #include <pwd.h>
 
 #define BACKUP 0
+#define RESTORE 1
 #define PATH_SIZE 1024
 #define CHUNK_SIZE 4096 
 
@@ -35,6 +36,19 @@ typedef struct message {
 MESSAGE init_message(char* operation, uid_t uid, pid_t pid, char* file_path, 
 						char* chunk, int chunk_size, int status); 
 
+/**
+ * Altera o valor da mensagem dada
+ * @param m Mensagem a alterar
+ * @param operation 
+ * @param uid User ID
+ * @param pid PID do processo da origem da mensagem
+ * @param file_path Path real do ficheiro
+ * @param chunk Pedaço de ficheiro a enviar
+ * @param chunk_size Tamanho do pedaço
+ * @param status NOT_FNSHD caso ainda haja mais chunks, FINISHED caso tenha terminado, ERROR caso a leitura do ficheiro deu um erro
+ */
+void change_message(MESSAGE m, char* operation, uid_t uid, pid_t pid, char* file_path, 
+						char* chunk, int chunk_size, int status);
 /**
  * Cria uma mensagem vazia
  */
