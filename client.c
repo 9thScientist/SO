@@ -12,7 +12,7 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
-void restore(char *file, int client_fifo, int server_fifo); 
+void restore(char *file,char* client_fifo_path, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
 int get_server_root(char* server_root, int size); 
 void count_dead(int pid);
@@ -25,7 +25,7 @@ int ret;
 
 int main(int argc, char* argv[]) {
 	char server_fifo_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
-	int i, server_fifo, client_fifo=0; 
+	int i, server_fifo;
 	uid_t uid = getuid();
 
 	// Verifica se os argumentos são válidos
@@ -54,14 +54,10 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
-	write(1, "vai!\n", 5);
 	if (!strcmp(argv[1], "restore")) {
 		get_server_root(client_fifo_path, PATH_SIZE);
 		sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) uid);
-	write(1, "vai!\n", 5);
 		mkfifo(client_fifo_path, 0777);
-		client_fifo = open(client_fifo_path, O_RDONLY);
-	write(1, "vai!\n", 5);
 	}
 
 
@@ -86,7 +82,7 @@ int main(int argc, char* argv[]) {
 			current_file = get_file_name(argv[i]);
 
 			if (!strcmp(argv[1], "backup")) backup(argv[i], server_fifo);
-			else if (!strcmp(argv[1], "restore")) restore(argv[i], client_fifo, server_fifo);
+			else if (!strcmp(argv[1], "restore")) restore(argv[i], client_fifo_path, server_fifo);
 
 			_exit(0);
 		}
@@ -98,7 +94,6 @@ int main(int argc, char* argv[]) {
 
 	unlink(client_fifo_path);
 	close(server_fifo);
-	if (!strcmp(argv[1], "restore")) close(client_fifo);
 	return ret;
 }
 
@@ -135,22 +130,26 @@ void backup(char *file, int server_fifo) {
 	freeMessage(msg);
 }
 
-void restore(char *file,int client_fifo, int server_fifo) {
+void restore(char *file,char* client_fifo_path, int server_fifo) {
 	MESSAGE msg = empty_message();
-	int f, st=1;
+	int f, st=1, client_fifo;
 	uid_t uid = getuid();
 	pid_t pid = getpid();
 	
 	change_message(msg, "restore", uid, pid, file, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
-printf("sent %s\n", file);
 
+	client_fifo = open(client_fifo_path, O_RDONLY);
+
+	printf("ler...\n");
 	while(st) {
 		if (!read(client_fifo, msg, sizeof(*msg))) continue;
 		st = msg->status;
-		printf("file: %s\n read: %d\n", msg->file_path, msg->chunk_size);
+		printf("file: %s.\n. read: %d\n", msg->file_path, msg->chunk_size);
 		f = open(msg->file_path, O_CREAT | O_WRONLY | O_APPEND, 0644);
 		write(f, msg->chunk, msg->chunk_size);
+		perror("file");
+		printf("file: %s\n%s\n", msg->file_path, msg->chunk);
 
 		close(f);
 	}
