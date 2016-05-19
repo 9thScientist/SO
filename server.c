@@ -12,6 +12,7 @@
 
 #define DATA_PATH "/.Backup/data/"
 #define METADATA_PATH "/.Backup/metadata/"
+#define PATHS_PATH "/.Backup/paths/"
 
 void send_success(pid_t pid);
 void send_error(pid_t pid);
@@ -44,9 +45,9 @@ int main(void) {
 	strncat(bu_root, DATA_PATH, PATH_SIZE);
 
 
-	server_fifo = open(server_fifo_path, O_RDONLY);
 
-	if (!fork()) 
+	if (!fork()) { 
+	server_fifo = open(server_fifo_path, O_RDONLY);
 	while(1) {
 		msg = empty_message();
 		printf("a ler...\n");
@@ -56,7 +57,7 @@ int main(void) {
 			freeMessage(msg);
 			continue;
 		}
-
+	printf("file: %s\nread: %d\n", msg->file_path, msg->chunk_size);
 		file_name = get_file_name(msg->file_path);
 		strncpy(new_file, bu_root, PATH_SIZE);
 		strncat(new_file, file_name, PATH_SIZE);
@@ -86,12 +87,19 @@ int main(void) {
 
 			}
 			
+			printf("A enviar %d para %d\n", err, msg->pid);
+			printf("SEND!\n");
+			kill(msg->pid, SIGCONT);
+			sleep(2);
+			printf("THERE!\n");
 			err ? send_error(msg->pid) : send_success(msg->pid);
+			sleep(5);
+			printf("afrit\n");
 			free(msg);
 			_exit(err);
 		}
 	}
-
+	}
 	return 0;
 }
 
@@ -117,6 +125,10 @@ int create_root() {
 		strncat(root_dir, METADATA_PATH , PATH_SIZE);
 		mkdir(root_dir,0744);
 	
+		strncpy(root_dir, home, PATH_SIZE);
+		strncat(root_dir, PATHS_PATH, PATH_SIZE);
+		mkdir(root_dir,0744);
+		
 		strncpy(root_dir, home, PATH_SIZE);
 		strncat(root_dir, "/.Backup/sobupipe", PATH_SIZE);
 		mkfifo(root_dir, 0777);
