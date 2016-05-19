@@ -43,8 +43,14 @@ int backup(MESSAGE msg) {
 	strncpy(ln_dir, home, PATH_SIZE);
 	strncat(ln_dir, "/.Backup/metadata/", PATH_SIZE);
 	strncat(ln_dir, f_name, PATH_SIZE); 
-	
 	//Cria symlink .Backup/data/digest -> .Backup/metadata/ficheiro
+	symlink(root_dir, ln_dir);
+
+	strncpy(root_dir, msg->file_path, PATH_SIZE);
+	strncpy(ln_dir, home, PATH_SIZE);
+	strncat(ln_dir, "/.Backup/paths/", PATH_SIZE);
+	strncat(ln_dir, f_name, PATH_SIZE); 
+	//Cria symlink em /paths/
 	symlink(root_dir, ln_dir);
 
 	free(hash);
