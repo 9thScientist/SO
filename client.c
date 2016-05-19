@@ -64,12 +64,16 @@ int main(int argc, char* argv[]) {
 	signal(SIGCHLD, count_dead);
 
 	// Prepara e envia informação a partir dos argumentos
-	get_server_pipe(server_fifo_path, PATH_SIZE); 
+	i = get_server_pipe(server_fifo_path, PATH_SIZE); 
+	if (i == -1) {
+		write(2, "Não foi possível comunicar com o servidor.\n", 45);
+		return -3;
+	} 
 	server_fifo = open(server_fifo_path, O_WRONLY);
 
 	if (server_fifo == -1){
 		perror("Erro ao tentar comunicar com servidor.");
-		return -3;
+		return -4;
 	}
 
 	for(i = 2; i < argc; i++) {
