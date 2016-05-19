@@ -13,6 +13,10 @@ clear:
 	-@rm -f client
 	-@rm -f server
 
+.PHONY: stop
+stop:
+	pkill -f sobuserv
+
 .PHONY: install
 install:
 	-@mv server /usr/bin/sobuserv
