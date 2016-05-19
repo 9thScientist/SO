@@ -24,7 +24,7 @@ int server_fifo;
 
 int main(void) {
 	MESSAGE msg; 
-	char bu_root[PATH_SIZE], new_file[PATH_SIZE], *home, *file_name;
+	char server_fifo_path[PATH_SIZE], bu_root[PATH_SIZE], new_file[PATH_SIZE], *home, *file_name;
 	int err, f;
 
 	signal(SIGCHLD, count_dead);
@@ -32,10 +32,8 @@ int main(void) {
 	create_root();
 	check_in();
 	home = getenv("HOME");
-	strncpy(bu_root, home, PATH_SIZE);
-	strncat(bu_root, "/.Backup/sobupipe", PATH_SIZE);
-
-	server_fifo = open(bu_root, O_RDONLY);
+	strncpy(server_fifo_path, home, PATH_SIZE);
+	strncat(server_fifo_path, "/.Backup/sobupipe", PATH_SIZE);
 
 	if (server_fifo == -1) {
 		perror("Erro ao ler pedidos");
@@ -45,13 +43,20 @@ int main(void) {
 	strncpy(bu_root, home, PATH_SIZE);
 	strncat(bu_root, DATA_PATH, PATH_SIZE);
 
+
+	server_fifo = open(server_fifo_path, O_RDONLY);
+
+	if (!fork()) 
 	while(1) {
 		msg = empty_message();
-		//Este if->continue está sempre a entrar em ciclo
-		if (!read(server_fifo, msg, sizeof(*msg))) {
+		printf("a ler...\n");
+		if (!read(server_fifo, msg, sizeof(*msg) )) {
+			close(server_fifo);
+			server_fifo = open(server_fifo_path, O_RDONLY);
 			freeMessage(msg);
 			continue;
 		}
+
 		file_name = get_file_name(msg->file_path);
 		strncpy(new_file, bu_root, PATH_SIZE);
 		strncat(new_file, file_name, PATH_SIZE);
@@ -85,7 +90,6 @@ int main(void) {
 			free(msg);
 			_exit(err);
 		}
-
 	}
 
 	return 0;
