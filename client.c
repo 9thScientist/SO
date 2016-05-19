@@ -12,8 +12,9 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
-void restore(char *file, char* client_fifo_path, int server_fifo); 
+void restore(char *file, int client_fifo, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
+int get_server_root(char* server_root, int size); 
 void count_dead(int pid);
 void write_succ_message();
 void write_fail_message();
@@ -24,7 +25,7 @@ int ret;
 
 int main(int argc, char* argv[]) {
 	char server_fifo_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
-	int i, server_fifo;
+	int i, server_fifo, client_fifo=0; 
 	uid_t uid = getuid();
 
 	// Verifica se os argumentos são válidos
@@ -53,17 +54,21 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
+	write(1, "vai!\n", 5);
 	if (!strcmp(argv[1], "restore")) {
-		strncpy(client_fifo_path, "/tmp/sobu/", PATH_SIZE);
-		mkdir(client_fifo_path, 0666);
-		sprintf(client_fifo_path, "/tmp/sobu/%d", (int) uid);
+		get_server_root(client_fifo_path, PATH_SIZE);
+		sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) uid);
+	write(1, "vai!\n", 5);
 		mkfifo(client_fifo_path, 0777);
+		client_fifo = open(client_fifo_path, O_RDONLY);
+	write(1, "vai!\n", 5);
 	}
+
 
 	signal(SIGCHLD, count_dead);
 
 	// Prepara e envia informação a partir dos argumentos
-	get_server_pipe(server_fifo_path, PATH_SIZE);
+	get_server_pipe(server_fifo_path, PATH_SIZE); 
 	server_fifo = open(server_fifo_path, O_WRONLY);
 
 	if (server_fifo == -1){
@@ -81,7 +86,7 @@ int main(int argc, char* argv[]) {
 			current_file = get_file_name(argv[i]);
 
 			if (!strcmp(argv[1], "backup")) backup(argv[i], server_fifo);
-			else if (!strcmp(argv[1], "restore")) restore(argv[i], client_fifo_path, server_fifo);
+			else if (!strcmp(argv[1], "restore")) restore(argv[i], client_fifo, server_fifo);
 
 			_exit(0);
 		}
@@ -93,6 +98,7 @@ int main(int argc, char* argv[]) {
 
 	unlink(client_fifo_path);
 	close(server_fifo);
+	if (!strcmp(argv[1], "restore")) close(client_fifo);
 	return ret;
 }
 
@@ -129,15 +135,15 @@ void backup(char *file, int server_fifo) {
 	freeMessage(msg);
 }
 
-void restore(char *file, char* client_fifo_path, int server_fifo) {
+void restore(char *file,int client_fifo, int server_fifo) {
 	MESSAGE msg = empty_message();
-	int f, client_fifo, st=1;
+	int f, st=1;
 	uid_t uid = getuid();
 	pid_t pid = getpid();
-
-	client_fifo = open(client_fifo_path, O_RDONLY);
+	
 	change_message(msg, "restore", uid, pid, file, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
+printf("sent %s\n", file);
 
 	while(st) {
 		if (!read(client_fifo, msg, sizeof(*msg))) continue;
@@ -173,6 +179,30 @@ int get_server_pipe(char* fifo_path, int size) {
 	pw = getpwuid(uid);
 	strncpy(fifo_path, pw->pw_dir, size);
 	strncat(fifo_path, "/.Backup/sobupipe", size);	
+
+	return 0;
+}
+
+/**
+ * Coloca o path para o pipe do servidor em fifo_path
+ */
+int get_server_root(char* server_root, int size) {
+	char server_user[BUFFER_SIZE], info_path[PATH_SIZE];
+	int file;
+	uid_t uid;
+	struct passwd *pw;
+
+	strncpy(info_path, "/usr/share/sobuserv/running_user", PATH_SIZE);
+	file = open(info_path, O_RDONLY);
+	if (errno == ENOENT) return -1;
+
+	read(file, server_user, BUFFER_SIZE);
+	close(file);
+	
+	uid = (uid_t) atoi(server_user);
+	pw = getpwuid(uid);
+	strncpy(server_root, pw->pw_dir, size);
+	strncat(server_root, "/.Backup/", size);	
 
 	return 0;
 }

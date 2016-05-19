@@ -21,7 +21,7 @@ int restore(MESSAGE msg) {
 	char *f_name, aux_path[PATH_SIZE], file_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
 	int s, client_fifo;
 	
-	sprintf(client_fifo_path, "/tmp/sobu/%d", msg->uid);
+	sprintf(client_fifo_path, "%s/%s%d", getenv("HOME"), BACKUP_PATH, msg->uid);
 	client_fifo = open(client_fifo_path, O_WRONLY);
 
 	f_name = get_file_name(msg->file_path);

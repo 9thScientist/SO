@@ -55,6 +55,7 @@ int main(void) {
 			freeMessage(msg);
 			continue;
 		}
+	printf("file: %s\nread: %d OP: %d\n", msg->file_path, msg->chunk_size, msg->operation);
 
 		if (msg->operation == BACKUP) {
 			file_name = get_file_name(msg->file_path);
