@@ -81,6 +81,7 @@ int main(void) {
 		if (!fork()) {
 			switch(msg->operation) {
 				case BACKUP: err = backup(msg);
+							 err ? send_error(msg->pid) : send_success(msg->pid);
 							 break;
 				case RESTORE: err = restore(msg);
 							 break;
@@ -89,7 +90,6 @@ int main(void) {
 
 			}
 			
-			err ? send_error(msg->pid) : send_success(msg->pid);
 			free(msg);
 			_exit(err);
 		}
