@@ -11,15 +11,18 @@
 #define METADATA_PATH "/.Backup/metadata/"
 #define PATHS_PATH "/.Backup/paths/"
 
-void send_file(char* file_path, uid_t uid); 
+void send_file(char* file_path, uid_t uid, int client_pipe); 
 char* get_original_path(char *file, char* original_path, int size); 
 int copy(char* src, char* dest);
 void decompress(char* file_path); 
 void remove_gz(char* file_path); 
 
 int restore(MESSAGE msg) {
-	char *f_name, aux_path[PATH_SIZE], file_path[PATH_SIZE];
-	int s;
+	char *f_name, aux_path[PATH_SIZE], file_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
+	int s, client_fifo;
+	
+	sprintf(client_fifo_path, "/tmp/sobu/%d", msg->uid);
+	client_fifo = open(client_fifo_path, O_WRONLY);
 
 	f_name = get_file_name(msg->file_path);
 	
@@ -35,12 +38,14 @@ int restore(MESSAGE msg) {
 	strncat(file_path, f_name, PATH_SIZE);
 	strncat(file_path, ".gz", PATH_SIZE);
 
+
 	copy(aux_path, file_path);
 	decompress(file_path);
-	send_file(file_path, msg->uid);
+	send_file(file_path, msg->uid, client_fifo);
 
 	unlink(file_path);
-
+	
+	close(client_fifo);
 	return 0;
 }
 
@@ -49,29 +54,28 @@ int restore(MESSAGE msg) {
  * @param file_path ficheiro a enviar
  * @param uid User de destino
  */
-void send_file(char* file_path, uid_t uid) {
-	char client_pipe_path[PATH_SIZE], original_path[PATH_SIZE], chunk[CHUNK_SIZE];
+void send_file(char* file_path, uid_t uid, int client_pipe) {
+	char original_path[PATH_SIZE], chunk[CHUNK_SIZE];
 	char* f_name;
-	int client_pipe, file, sz;
+	int file, sz;
 	MESSAGE msg = empty_message();
 
-	sprintf(client_pipe_path, "/tmp/sobu/%d", (int) uid);
-	printf("A ler do pipe: %s\n", client_pipe_path);
-
-	client_pipe = open(client_pipe_path, O_WRONLY);
-	
 	file = open(file_path, O_RDONLY);
 	f_name = get_file_name(file_path); 
 	get_original_path(f_name, original_path, PATH_SIZE);
 
 	while((sz = read(file, chunk, CHUNK_SIZE)))	{
 		change_message(msg, "restore", uid, 0, original_path, chunk, sz, NOT_FNSHD);
+		printf("file: %s\n write: %d\n", msg->file_path, msg->chunk_size);
 		write(client_pipe, msg, sizeof(*msg));
 	}
+		
+	change_message(msg, "restore", uid, 0, original_path, "", 0, FINISHED);
+	write(client_pipe, msg, sizeof(*msg));
+	printf("file: %s\n FINISHED\n", original_path);
 	
 	freeMessage(msg);
 	close(file);
-	close(client_pipe);
 }
 
 /**
