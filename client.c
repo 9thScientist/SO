@@ -14,7 +14,7 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
-void restore(char *file,char* client_fifo_path, int server_fifo); 
+void restore(char *file, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
 int get_server_root(char* server_root, int size); 
 int is_dir(char *path); 
@@ -29,9 +29,8 @@ char* current_file;
 int ret;
 
 int main(int argc, char* argv[]) {
-	char server_fifo_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
+	char server_fifo_path[PATH_SIZE];
 	int i, server_fifo;
-	uid_t uid = getuid();
 
 	// Verifica se os argumentos são válidos
 	if (argc == 1 || (strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
@@ -59,13 +58,6 @@ int main(int argc, char* argv[]) {
 		}
 	}	
 
-	if (!strcmp(argv[1], "restore")) {
-		get_server_root(client_fifo_path, PATH_SIZE);
-		sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) uid);
-		mkfifo(client_fifo_path, 0622);
-	}
-
-
 	signal(SIGCHLD, count_dead);
 
 	// Prepara e envia informação a partir dos argumentos
@@ -73,7 +65,8 @@ int main(int argc, char* argv[]) {
 	if (i == -1) {
 		write(2, "Não foi possível comunicar com o servidor.\n", 45);
 		return -3;
-	} 
+	}
+
 	server_fifo = open(server_fifo_path, O_WRONLY);
 
 	if (server_fifo == -1){
@@ -90,18 +83,21 @@ int main(int argc, char* argv[]) {
 		
 			current_file = get_file_name(argv[i]);
 
-			if (!strcmp(argv[1], "backup")) backup(argv[i], server_fifo);
-			else if (!strcmp(argv[1], "restore")) restore(argv[i], client_fifo_path, server_fifo);
+			if (!strcmp(argv[1], "backup")) 
+				backup(argv[i], server_fifo);
+			else if (!strcmp(argv[1], "restore")) 
+				restore(argv[i], server_fifo);
 
 			_exit(0);
 		}
 
-		if (!strcmp(argv[1], "restore")) wait(NULL);
+		if (!strcmp(argv[1], "restore"))
+			wait(NULL);
 	}	
 
-	while (alive > 0) wait(NULL);
+	while (alive > 0)
+		 wait(NULL);
 
-	unlink(client_fifo_path);
 	close(server_fifo);
 	return ret;
 }
@@ -123,36 +119,45 @@ void backup(char *file, int server_fifo) {
 
 	if (is_dir(file)) 
 		fill_vec(file, aux, CHUNK_SIZE, &files);
-	else vec_push(&files, file);	
+	else 
+		vec_push(&files, file);	
 
 	for (i=0; i < files.length; i++) { 
 		realpath(files.data[i], cdir);
 		f = open(cdir, O_RDONLY);
-		while( (status = read(f, chunk, CHUNK_SIZE)) > 0) {
+
+		while((status = read(f, chunk, CHUNK_SIZE)) > 0) {
 			change_message(msg, "backup", uid, pid, cdir, chunk, status, NOT_FNSHD);
 			write(server_fifo, msg, sizeof(*msg));
-		}	
+		}
+
 		change_message(msg, "backup", uid, pid, cdir, "", 0, FINISHED);
 		write(server_fifo, msg, sizeof(*msg));
 		close(f);
 	
 		pause(); 
 		
-		if (!ret) {
+		if (!ret)
 			printf("%s: copiado\n", files.data[i]);
-		} else printf("%s: erro ao copiar\n", files.data[i]);
+		else
+			printf("%s: erro ao copiar\n", files.data[i]);
 
 	}
 
 	freeMessage(msg);
 }
 
-void restore(char *file,char* client_fifo_path, int server_fifo) {
+void restore(char *file, int server_fifo) {
 	MESSAGE msg = empty_message();
+	char client_fifo_path[PATH_SIZE];
 	int f, st=1, client_fifo;
 	uid_t uid = getuid();
 	pid_t pid = getpid();
 	
+	get_server_root(client_fifo_path, PATH_SIZE);
+	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
+	mkfifo(client_fifo_path, 0622);
+
 	change_message(msg, "restore", uid, pid, file, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
 
@@ -169,6 +174,7 @@ void restore(char *file,char* client_fifo_path, int server_fifo) {
 
 	freeMessage(msg);
 	close(client_fifo);
+	unlink(client_fifo_path);
 }
 
 /**
