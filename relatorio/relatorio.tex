@@ -1,0 +1,62 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ top=20mm,
+ }
+\usepackage[pdftex]{hyperref}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage[portuges]{babel}
+\titleformat{\chapter}{\normalfont\huge}{\thechapter.}{10pt}{\huge\it} 
+\begin{document}
+\begin{titlepage}
+	\centering
+	\includegraphics[width=0.3\textwidth]{uminho.jpg}\par\vspace{1cm}
+	{\huge\bfseries Sistemas Operativos \par}
+	\vspace{0.5cm}
+	{\scshape\ MIEI - 2º ano - 2º semestre\par}
+	\vspace{0.1cm}
+	{\scshape\ Universidade do Minho\par}
+	\vspace{1.5cm}
+    {\scshape\Huge\bfseries Sistema de Backup \par}
+	\vspace{5cm}
+    \vspace{1cm}
+	{\scshape\ Bruno Canelinha \par} 	\vspace{0.1cm}
+	{\scshape\ A75428 \par}  \vspace{0.3cm}
+	{\scshape\ Marcelo Miranda \par} \vspace{0.1cm}
+	{\scshape\ A74817 \par}  \vspace{0.3cm}
+	{\scshape\ Rui Vieira \par} \vspace{0.1cm}
+	{\scshape\ A74658 \par}  \vspace{0.3cm}
+
+	\vfill
+	{\large \today\par}
+\end{titlepage}
+
+\tableofcontents
+
+\chapter{Introdução}
+
+Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos reduzindo o espaço ocupado por eles utilizados. Temos também de considerar a privacidade de dados mantendo uma arquitetura cliente/servidor impedindo o acesso direto do cliente à pasta de backup.\par
+O trabalho parecia ser fácil à primeira vista mas o nosso grupo não estava a considerar toda a dificuldade duma arquitetura com processos concorrentes, o que nos levou a adquirir uma nova maneira de pensar.\par
+O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}} que se responsabiliza por comprimir os ficheiros e salva-los na pasta que viremos a chamar \emph{root do backup}. O \emph{\bfseries{restore}} que simplesmente descomprime o ficheiro e o devolve na sua diretoria original. Vamos de seguida explicar estes dois com mais profundidade.
+
+
+\chapter{Backup}
+A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro.
+
+\chapter{Descrição da arquitetura de classes}
+
+\chapter{Descrição da aplicação}
+
+Desenvolvemos uma aplicação com uma interface amigável para o utilizador com comandos básicos, para que este pudesse tirar o maior proveito deste. Os menus funcionam à base de opções por números, facilitando assim, a nosso ver, o funcionamento do programa. 
+Quando um utilizador corre inicialmente o programa depara-se com este menu:
+
+\chapter{Conclusão}
+
+Neste trabalho acabamos por programar o LightBot em Haskell, ou seja, através de uma sequência de tarefas, conseguimos obter o resultado como uma sequência de comandos em que o robot tem que proceder de modo a acender todas as lâmpadas existentes no tabuleiro, sendo também possível visualizar o robot a realizar tais funções.
+
+\end{document}
