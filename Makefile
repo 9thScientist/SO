@@ -5,7 +5,7 @@ all: client server
 server: server.c backup.c message.c restore.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-client: client.c message.c
+client: client.c message.c vec.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 .PHONY: clear
