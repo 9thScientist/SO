@@ -24,5 +24,5 @@ install:
 
 .PHONY: uninstall
 uninstall:
-	-@rm /bin/sobusrv
-	-@rm /bin/sobucli
+	-@sudo rm /bin/sobusrv
+	-@sudo rm /bin/sobucli
