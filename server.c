@@ -88,6 +88,7 @@ int main(void) {
 							 err ? send_error(msg->pid) : send_success(msg->pid);
 							 break;
 				case RESTORE: err = restore(msg);
+							  err ? send_error(msg->pid) : send_success(msg->pid);
 							 break;
 				default: err = 1;
 						 break;

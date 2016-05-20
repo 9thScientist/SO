@@ -154,6 +154,9 @@ void restore(char *file, int server_fifo) {
 	uid_t uid = getuid();
 	pid_t pid = getpid();
 	
+	signal(SIGUSR1, write_succ_message);	
+	signal(SIGUSR2, write_fail_message);
+
 	get_server_root(client_fifo_path, PATH_SIZE);
 	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
 	mkfifo(client_fifo_path, 0622);
@@ -171,6 +174,11 @@ void restore(char *file, int server_fifo) {
 
 		close(f);
 	}
+
+	if (!ret)
+		printf("%s: recuperado\n", file);
+	else
+		printf("%s: erro ao recuperar\n", file);
 
 	freeMessage(msg);
 	close(client_fifo);
