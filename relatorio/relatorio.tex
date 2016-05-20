@@ -40,13 +40,16 @@
 
 \chapter{Introdução}
 
-Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos reduzindo o espaço ocupado por eles utilizados. Temos também de considerar a privacidade de dados mantendo uma arquitetura cliente/servidor impedindo o acesso direto do cliente à pasta de backup.\par
+Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos, reduzindo o espaço por eles ocupados. Temos também de considerar a privacidade de dados mantendo uma arquitetura cliente/servidor impedindo o acesso direto do cliente à pasta de backup.\par
 O trabalho parecia ser fácil à primeira vista mas o nosso grupo não estava a considerar toda a dificuldade duma arquitetura com processos concorrentes, o que nos levou a adquirir uma nova maneira de pensar.\par
 O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}} que se responsabiliza por comprimir os ficheiros e salva-los na pasta que viremos a chamar \emph{root do backup}. O \emph{\bfseries{restore}} que simplesmente descomprime o ficheiro e o devolve na sua diretoria original. Vamos de seguida explicar estes dois com mais profundidade.
 
+\chapter{Funcionalidades}
+\section{Backup}
+A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde.
 
-\chapter{Backup}
-A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro.
+\section{Restore}
+Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. Encontrado o \emph{digest} na pasta \emph{data}, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem compremeter futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, para que este possa guardar o ficheiro.
 
 \chapter{Descrição da arquitetura de classes}
 
