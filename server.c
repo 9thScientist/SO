@@ -38,7 +38,7 @@ int main(void) {
 	strncat(server_fifo_path, "/.Backup/sobupipe", PATH_SIZE);
 
 	if (server_fifo == -1) {
-		perror("Erro ao ler pedidos");
+		perror("Não foi possível establecer um canal de comunicações com os clientes");
 		return -2;
 	}
 	
@@ -60,18 +60,22 @@ int main(void) {
 			file_name = get_file_name(msg->file_path);
 			strncpy(new_file, bu_root, PATH_SIZE);
 			strncat(new_file, file_name, PATH_SIZE);
-			f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0600);
-			write(f, msg->chunk, msg->chunk_size);
-			close(f);
-		}
 
-		if (msg->status == NOT_FNSHD) {
-			freeMessage(msg);
-			continue;
-		} else if (msg->status == ERROR) {
-			send_error(msg->pid);
-			freeMessage(msg);
-			exit(1);
+			if (msg->status == ERROR) {
+				send_error(msg->pid);
+				unlink(new_file);
+			}
+		
+			if (msg->status == NOT_FNSHD) {
+				f = open(new_file, O_WRONLY | O_APPEND | O_CREAT, 0600);
+				write(f, msg->chunk, msg->chunk_size);
+				close(f);
+			}
+
+			if (msg->status != FINISHED) {
+				freeMessage(msg);
+				continue;
+			}
 		}
 
 		if (alive == MAX_CHILDREN)
