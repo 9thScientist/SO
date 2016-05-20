@@ -38,14 +38,14 @@ int restore(MESSAGE msg) {
 	strncat(file_path, f_name, PATH_SIZE);
 	strncat(file_path, ".gz", PATH_SIZE);
 
-
 	copy(aux_path, file_path);
 	decompress(file_path);
 	send_file(file_path, msg->uid, client_fifo);
 
-	unlink(file_path);
-	
 	close(client_fifo);
+	unlink(file_path);
+	unlink(client_fifo_path);
+	
 	return 0;
 }
 

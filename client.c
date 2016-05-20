@@ -174,7 +174,6 @@ void restore(char *file, int server_fifo) {
 
 	freeMessage(msg);
 	close(client_fifo);
-	unlink(client_fifo_path);
 }
 
 /**
