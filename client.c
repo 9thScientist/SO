@@ -214,7 +214,7 @@ int get_server_root(char* server_root, int size) {
 	uid = (uid_t) atoi(server_user);
 	pw = getpwuid(uid);
 	strncpy(server_root, pw->pw_dir, size);
-	strncat(server_root, "/.Backup/", size);	
+	strncat(server_root, "/.Backup/", size);
 
 	return 0;
 }
@@ -259,17 +259,15 @@ int is_dir(char *path) {
 // decrementa o numero de filhos vivos
 void count_dead(int pid) {
 	waitpid(pid, NULL, WCONTINUED);
-	alive--;	
+	alive--;
 }
 
 // escreve a mensagem de sucesso enviada pelo utilizador
 void write_succ_message() {
-	//printf("%s: copiado\n", *current_file);
 	ret = 0;
 }
 
 // escreve a mensagem de erro enviada pelo utilizador
 void write_fail_message() {
-	//printf("%s: ERRO - Impossível copiar\n", *current_file);
 	ret = 1;
 }
