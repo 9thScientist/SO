@@ -21,10 +21,9 @@ void remove_gz(char* file_path);
 int restore(MESSAGE msg) {
 	char *f_name, aux_path[PATH_SIZE], file_path[PATH_SIZE], client_fifo_path[PATH_SIZE];
 	int s, client_fifo;
-	
-	sprintf(client_fifo_path, "%s/%s%d", getenv("HOME"), BACKUP_PATH, msg->pid);
-	mkfifo(client_fifo_path, 0622);
-	client_fifo = open(client_fifo_path, O_WRONLY);
+
+	sprintf(client_fifo_path, "%s%s%d", getenv("HOME"), BACKUP_PATH, msg->pid);
+	mkfifo(client_fifo_path, 0644);
 
 	f_name = get_file_name(msg->file_path);
 	
@@ -34,6 +33,7 @@ int restore(MESSAGE msg) {
 
 	if ((s = readlink(file_path, aux_path, PATH_SIZE)) == -1) {
 		kill(msg->pid, SIGUSR2);
+		unlink(client_fifo_path);
 		return -1;
 	}else
 		kill(msg->pid, SIGUSR1);
@@ -44,6 +44,8 @@ int restore(MESSAGE msg) {
 	strncat(file_path, BACKUP_PATH, PATH_SIZE);
 	strncat(file_path, f_name, PATH_SIZE);
 	strncat(file_path, ".gz", PATH_SIZE);
+
+	client_fifo = open(client_fifo_path, O_WRONLY);
 
 	copy(aux_path, file_path);
 	decompress(file_path);

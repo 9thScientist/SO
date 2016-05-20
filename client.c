@@ -161,20 +161,22 @@ void restore(char *file, int server_fifo) {
 	signal(SIGUSR1, write_succ_message);	
 	signal(SIGUSR2, write_fail_message);
 
-	get_server_root(client_fifo_path, PATH_SIZE);
-	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
-
 	change_message(msg, "restore", uid, pid, file, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
 
-	client_fifo = open(client_fifo_path, O_RDONLY);
-
 	pause();
 
-	if (ret)
+	if (ret) {
 		printf("%s: ficheiro não existe\n", file);
+		freeMessage(msg);
+		return;
+	}
 
-	while(st && !ret) {
+	get_server_root(client_fifo_path, PATH_SIZE);
+	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
+	client_fifo = open(client_fifo_path, O_RDONLY);
+
+	while(st) {
 		if (!read(client_fifo, msg, sizeof(*msg))) 
 			continue;
 
