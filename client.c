@@ -14,7 +14,8 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
-void restore(char *file, int server_fifo); 
+void restore(char *file, int server_fifo);
+void delete(char *file, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
 int get_server_root(char* server_root, int size); 
 int is_dir(char *path); 
@@ -33,7 +34,8 @@ int main(int argc, char* argv[]) {
 	int i, server_fifo;
 
 	// Verifica se os argumentos são válidos
-	if (argc == 1 || (strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
+	if (argc == 1 || (strcmp(argv[1], "delete") && 
+                      strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
 		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\n\
 						 Tente 'sobucli --help' para mais ajuda.");
 		return -1;
@@ -87,6 +89,8 @@ int main(int argc, char* argv[]) {
 				backup(argv[i], server_fifo);
 			else if (!strcmp(argv[1], "restore")) 
 				restore(argv[i], server_fifo);
+			else if (!strcmp(argv[1], "delete"))
+				delete(argv[i], server_fifo);
 
 			_exit(0);
 		}
@@ -159,15 +163,21 @@ void restore(char *file, int server_fifo) {
 
 	get_server_root(client_fifo_path, PATH_SIZE);
 	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
-	mkfifo(client_fifo_path, 0622);
 
 	change_message(msg, "restore", uid, pid, file, "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
 
 	client_fifo = open(client_fifo_path, O_RDONLY);
 
-	while(st) {
-		if (!read(client_fifo, msg, sizeof(*msg))) continue;
+	pause();
+
+	if (ret)
+		printf("%s: ficheiro não existe\n", file);
+
+	while(st && !ret) {
+		if (!read(client_fifo, msg, sizeof(*msg))) 
+			continue;
+
 		st = msg->status;
 		f = open(msg->file_path, O_CREAT | O_WRONLY | O_APPEND, 0644);
 		write(f, msg->chunk, msg->chunk_size);
@@ -182,6 +192,27 @@ void restore(char *file, int server_fifo) {
 
 	freeMessage(msg);
 	close(client_fifo);
+}
+
+void delete(char* file, int server_fifo) {
+	MESSAGE msg = empty_message();
+	pid_t pid = getpid();
+	uid_t uid = getuid();
+	
+	signal(SIGUSR1, write_succ_message);	
+	signal(SIGUSR2, write_fail_message);
+
+	change_message(msg, "delete", uid, pid, file, "", 0, FINISHED);
+	write(server_fifo, msg, sizeof(*msg));
+	
+	pause(); 
+		
+	if (!ret)
+		printf("%s: apagado\n", file);
+	else
+		printf("%s: erro ao apagar\n", file);
+
+	freeMessage(msg);
 }
 
 /**

@@ -6,6 +6,7 @@
 
 #define BACKUP 0
 #define RESTORE 1
+#define DELETE 2
 #define PATH_SIZE 1024
 #define CHUNK_SIZE 4096 
 

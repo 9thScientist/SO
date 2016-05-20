@@ -23,6 +23,9 @@ void change_message(MESSAGE m, char* operation, uid_t uid, pid_t pid, char* file
 		m->operation = BACKUP;
 	else if (!strcmp(operation, "restore")) 
 		m->operation = RESTORE;
+	else if (!strcmp(operation, "delete"))
+		m->operation = DELETE;
+
 	m->status = status;
 	m->chunk_size = chunk_size;
 	m->pid = pid;
