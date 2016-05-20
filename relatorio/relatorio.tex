@@ -43,14 +43,20 @@
 
 Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos, reduzindo o espaço por eles ocupados. Temos também de considerar a privacidade de dados mantendo uma arquitetura cliente/servidor impedindo o acesso direto do cliente à pasta de backup.\par
 O trabalho parecia ser fácil à primeira vista mas o nosso grupo não estava a considerar toda a dificuldade duma arquitetura com processos concorrentes, o que nos levou a adquirir uma nova maneira de pensar.\par
-O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}} que se responsabiliza por comprimir os ficheiros e salva-los na pasta que viremos a chamar \emph{root do backup}. O \emph{\bfseries{restore}} que simplesmente descomprime o ficheiro e o devolve na sua diretoria original. Vamos de seguida explicar estes dois com mais profundidade.
+O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}} que se responsabiliza por comprimir os ficheiros e salva-los na pasta que viremos a chamar \emph{raiz do backup}. O \emph{\bfseries{restore}} que simplesmente descomprime o ficheiro e o devolve na sua diretoria original. Vamos de seguida explicar estes dois com mais profundidade.
 
 \chapter{Funcionalidades}
 \section{Backup}
 A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde. Quando o backup estiver concluído o servidor envia um sinal de sucesso ou de erro ao cliente.
 
 \section{Restore}
-Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. A partir deste, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem comprometer futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, finalmente, este é lá montado.
+Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler dos \emph{links simbólicos} do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. A partir deste, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem comprometer futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, este é por fim, lá montado.
+
+\section{Delete}
+O comando \emph{delete} apaga a entrada do ficheiro da \emph{raiz do backup}. Para isso, apenas apaga o ficheiro de \emph{metadata/} e de \emph{paths}, mantendo o conteúdo comprimido em \emph{data/}.
+
+\section{Global Clean}
+O \emph{Global Clean} é chamado pelo nome de \emph{gc}, remove todos os conteúdos em \emph{data/} que não estão a ser ligados por nenhum ficheiro em \emph{metadata/}.
 
 \chapter{Makefile}
 \section{make}
@@ -63,10 +69,22 @@ Também bastante comum, apenas limpa os executáveis criados pelo \emph{make}.
 Para todos os processos de \emph{sobusrv}.
 
 \section{make install}
-Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala estes executáveis diretamente na pasta \emph{/bin}. O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}, acabamos por escolher a primeira pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} para manter ***********
+Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala estes executáveis diretamente na pasta \emph{/bin}. O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}, acabamos por escolher a primeira pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} para manter compatibilidade.
 
 \section{make uninstall}
 Pareceu-nos importante, depois de ter um instalador, ter também um desinstalador. O make uninstall apenas remove \emph{sobusrv} e \emph{sobucli} da pasta \emph{/bin}.
+
+\chapter{Raiz do Backup}
+A \emph{raiz do backup} é uma pasta que se encontra na \emph{home} do utilizador que corre o servidor. Dentro dela, encontra-se o \emph{pipe} que servirá de comunicação cliente/servidor e, ocasionalmente, um conjunto de outros \emph{pipes} para servir de comunicação servidor/cliente necessária para o comando \emph{restore}, também uma pasta \emph{data/}, \emph{metadata/} e \emph{paths}.\par
+
+\section{data/}
+Na pasta \emph{data/} encontra-se todos os ficheiros comprimidos com o comando \emph{gzip}, para além disso, o nome dos ficheiros são o seu \emph{digest} criado por \emph{sha1sum}. Deste modeo é fácil descobrir ficheiros repetidos quando é chamado um novo \emph{backup}. O comando \emph{delete} não apaga nenhum destes ficheiros, para isso encontra-se designado o \emph{gc} que limpa todos os ficheiros de \emph{data/} que não estão ligados por \emph{metadata/}.
+
+\section{metadata/}
+Na pasta \emph{metadata/} estão guardados os \emph{links simbólicos} que ligam o nome do ficheiro ao seu conteúdo em \emph{data/}. O comando \emph{delete} apenas apaga estes \emph{links}.
+
+\section{paths/}
+Tal como a pasta \emph{metadata/}, a pasta \emph{data/} contém \emph{links simbólicos} que ligam o nome do ficheiro ao seu \emph{path} original para depois ser usado no \emph{restore}.
 
 \chapter{Comunicação cliente/servidor}
 
@@ -84,7 +102,6 @@ b.txt: erro ao copiar
 Ao fazer o \emph{restore} é necessário um outro \emph{pipe} que transfira, com estruturas do tipo mensagem, o documento descomprimido para o cliente, que o monta na sua localização original. Será criado na \emph{raiz do backup} pelo servidor com o nome que do \emph{pid} do processo que lhe enviou o pedido. Este \emph{pipe} é imediatamente removido depois de já não ser necessário.  
 
 \chapter{Mensagem}
-A estrutura mensagem é usada pelos dois \emph{pipes}, tendo a seguinte estrutura:\par
 
 \begin{lstlisting}
 #define CHUNK_SIZE 4096
@@ -94,6 +111,7 @@ A estrutura mensagem é usada pelos dois \emph{pipes}, tendo a seguinte estrutur
 #define RESTORE 1
 #define DELETE 2
 #define GC 3
+
 #define NOT_FNSHD 1
 #define FINISHED  0 
 #define ERROR -1
@@ -109,7 +127,7 @@ typedef struct message {
 } *MESSAGE;
 \end{lstlisting}
 
-\section{Definição}
+\section{A estrutura}
 
 \hspace{0cm}\par
 Um \emph{\bfseries{chunk}} é um \emph{array} de 4kbytes que terá \emph{\bfseries{chunk\_size}} bytes do ficheiro a transferir pelos \emph{pipes}. \par
@@ -118,10 +136,25 @@ A operação a efetuar está especificada no inteiro \emph{\bfseries{operation}}
 O inteiro \emph{\bfseries{status}} comunica o estado do ficheiro, este pode ser \emph{NOT\_FINISHED} caso faltem mais \emph{chunks} para carregar o ficheiro, \emph{FINISHED} caso tenha terminado de carregar todo o ficheiro, e \emph{ERROR} caso tenha ocorrido um erro na leitura do ficheiro.\par
 Finalmente temos o \emph{\bfseries{pid}} do processo que mandou a mensagem.
 
+\section{empty\_message}
+Apenas aloca o espaço para uma nova mensagem. Os campos desta nova mensagem não esterão tratados, sendo, por tanto, valores aleatórios.\par
+
+\section{init\_message}
+Para além de alocar uma nova mensagem, preenche todos os seus campos com os valores passados nos argumentos.\par
+
+\section{change\_message}
+Altera uma mensagem dada. Para tal, a mensagem passada nos argmuentos deve estar inicializada, sendo assim populada com os valores passados pelos argumentos.
+
+\section{freeMessage}
+Liberta o espaço alocado em memória pela mensagem.
+
 
 \chapter{Conclusão}
-ficheiros com nome igual explicar pq não implementado. delete e restore ambíguo. 
+Este projeto desenvolveu-nos uma capacidade de pensar numa arquitetura com vários processos concorrentes  para além de nos deixar mais à vontade com o sistema Unix e a sua interação com a linguagem C.\par
+A pesar de não estar em desagrado com o nosso trabalho, há algumas funcionalidas que gostariamos de ter implementado.\par
+A habilidade de poder gravar ficheiros com o mesmo nome, por exemplo, o ficheiro \emph{a.txt} da pasta \emph{~/Desktop} e outro como o mesmo nome em \emph{~/Documents}. Que não nos foi possível efeturar devido à ambiguidade que provinha de chamar \emph{restore} no tal ficheiro \emph{a.txt}, mantendo a simplicaidade do comando.\par
+Seria também interessante a possibilidade de manter as várias versões do mesmo ficheiro, apresentando um histórico ao utilizador cada vez que este fosse correr o \emph{restore}, tornando este mais poderoso. Não se concretizou para manter a simplicidade do programa.\par
+Foi sem dúvida um trabalho bastante interessante que nos despertou um grande interesse no ramo de \emph{Sistemas Operativos}.
 
-Neste trabalho acabamos por programar o LightBot em Haskell, ou seja, através de uma sequência de tarefas, conseguimos obter o resultado como uma sequência de comandos em que o robot tem que proceder de modo a acender todas as lâmpadas existentes no tabuleiro, sendo também possível visualizar o robot a realizar tais funções.
 
 \end{document}
