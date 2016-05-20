@@ -19,6 +19,7 @@ void delete(char *file, int server_fifo);
 int get_server_pipe(char* fifo_path, int size);
 int get_server_root(char* server_root, int size); 
 int is_dir(char *path); 
+int is_file(char *path); 
 void fill_vec(char *dir, char *aux, int aux_size, vec_str_t* vec); 
 void get_all_files(char *dir, char *aux, int aux_size); 
 void count_dead(int pid);
@@ -272,7 +273,7 @@ void fill_vec(char *dir, char *aux, int aux_size, vec_str_t* vec) {
 
 	strtok(aux, "\n");
 	while((tmp = strtok(NULL, "\n"))) {
-		vec_push(vec, tmp);
+		if (is_file(tmp)) vec_push(vec, tmp);
 	}
 
 }
@@ -300,6 +301,12 @@ int is_dir(char *path) {
 	struct stat path_stat;
 	stat(path, &path_stat);
 	return S_ISDIR(path_stat.st_mode);
+}
+
+int is_file(char *path) {
+	struct stat path_stat;
+	stat(path, &path_stat);
+	return S_ISREG(path_stat.st_mode);
 }
 
 // decrementa o numero de filhos vivos
