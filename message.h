@@ -52,7 +52,10 @@ void change_message(MESSAGE m, char* operation, uid_t uid, pid_t pid, char* file
 /**
  * Cria uma mensagem vazia
  */
-MESSAGE empty_message(); 
-char* get_file_name(char *file_path); 
-void freeMessage(MESSAGE m); 
+MESSAGE empty_message();
+ 
+char* get_file_name(char *file_path);
+
+void freeMessage(MESSAGE m);
+
 #endif

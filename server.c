@@ -18,8 +18,8 @@
 void send_success(pid_t pid);
 void send_error(pid_t pid);
 void count_dead(int pid);
-int create_root();
 void check_in();
+int create_root();
 
 int alive; // Número de filhos atualmente vivas
 int server_fifo;
