@@ -126,7 +126,7 @@ int create_root() {
 		
 		strncpy(root_dir, home, PATH_SIZE);
 		strncat(root_dir, "/.Backup/sobupipe", PATH_SIZE);
-		mkfifo(root_dir, 0777);
+		mkfifo(root_dir, 0622);
 		return 1;
 	}
 

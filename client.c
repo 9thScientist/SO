@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
 	if (!strcmp(argv[1], "restore")) {
 		get_server_root(client_fifo_path, PATH_SIZE);
 		sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) uid);
-		mkfifo(client_fifo_path, 0777);
+		mkfifo(client_fifo_path, 0622);
 	}
 
 
