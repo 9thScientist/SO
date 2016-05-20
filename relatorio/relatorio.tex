@@ -2,6 +2,7 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{geometry}
+\usepackage{listings}
  \geometry{
  a4paper,
  top=20mm,
@@ -25,7 +26,7 @@
     {\scshape\Huge\bfseries Sistema de Backup \par}
 	\vspace{5cm}
     \vspace{1cm}
-	{\scshape\ Bruno Canelinha \par} 	\vspace{0.1cm}
+	{\scshape\ Bruno Cancelinha \par} 	\vspace{0.1cm}
 	{\scshape\ A75428 \par}  \vspace{0.3cm}
 	{\scshape\ Marcelo Miranda \par} \vspace{0.1cm}
 	{\scshape\ A74817 \par}  \vspace{0.3cm}
@@ -46,20 +47,81 @@ O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}}
 
 \chapter{Funcionalidades}
 \section{Backup}
-A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde.
+A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde. Quando o backup estiver concluído o servidor envia um sinal de sucesso ou de erro ao cliente.
 
 \section{Restore}
-Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. Encontrado o \emph{digest} na pasta \emph{data}, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem compremeter futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, para que este possa guardar o ficheiro.
+Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. A partir deste, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem comprometer futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, finalmente, este é lá montado.
 
-\chapter{Descrição da arquitetura de classes}
+\chapter{Makefile}
+\section{make}
+É apenas um make normal, compila o cliente para o ficheiro \emph{client} e servidor para \emph{server}.
 
-\chapter{Descrição da aplicação}
+\section{make clean}
+Também bastante comum, apenas limpa os executáveis criados pelo \emph{make}.
 
-Desenvolvemos uma aplicação com uma interface amigável para o utilizador com comandos básicos, para que este pudesse tirar o maior proveito deste. Os menus funcionam à base de opções por números, facilitando assim, a nosso ver, o funcionamento do programa. 
-Quando um utilizador corre inicialmente o programa depara-se com este menu:
+\section{make stop}
+Para todos os processos de \emph{sobusrv}.
+
+\section{make install}
+Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala estes executáveis diretamente na pasta \emph{/bin}. O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}, acabamos por escolher a primeira pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} para manter ***********
+
+\section{make uninstall}
+Pareceu-nos importante, depois de ter um instalador, ter também um desinstalador. O make uninstall apenas remove \emph{sobusrv} e \emph{sobucli} da pasta \emph{/bin}.
+
+\chapter{Comunicação cliente/servidor}
+
+\section{Pipe do servidor}
+O servidor cria um pipe que se encontra na \emph{raiz do backup} com o nome \emph{sobupipe}. O servidor fica numa espera passiva até que o cliente transmita as operações que pretende que o primeiro execute. Estes pedidos são enviados em forma de \emph{mensagem}, uma estrutura que iremos discutir de seguida.
+
+\section{Sinais}
+Usamos sinais principalmente para o servidor notificar o cliente que o seu ficheiro já foi processado. Para sucesso, o servidor envia \emph{SIGUSR1} para erro envia \emph{SIGUSR2}. O utilizador ao receber cada um dos sinais escreve no ecrã a mensagem correspondente. Conforme o exemplo:
+\begin{lstlisting}
+a.txt: copiado
+b.txt: erro ao copiar
+\end{lstlisting}
+
+\section{Pipe do cliente}
+Ao fazer o \emph{restore} é necessário um outro \emph{pipe} que transfira, com estruturas do tipo mensagem, o documento descomprimido para o cliente, que o monta na sua localização original. Será criado na \emph{raiz do backup} pelo servidor com o nome que do \emph{pid} do processo que lhe enviou o pedido. Este \emph{pipe} é imediatamente removido depois de já não ser necessário.  
+
+\chapter{Mensagem}
+A estrutura mensagem é usada pelos dois \emph{pipes}, tendo a seguinte estrutura:\par
+
+\begin{lstlisting}
+#define CHUNK_SIZE 4096
+#define PATH_SIZE 1024
+
+#define BACKUP 0
+#define RESTORE 1
+#define DELETE 2
+#define GC 3
+#define NOT_FNSHD 1
+#define FINISHED  0 
+#define ERROR -1
+
+typedef struct message {
+    char chunk[CHUNK_SIZE];
+    char file_path[PATH_SIZE];
+    int operation;
+    int status;
+    int chunk_size;
+    pid_t pid;
+    uid_t uid;
+} *MESSAGE;
+\end{lstlisting}
+
+\section{Definição}
+
+\hspace{0cm}\par
+Um \emph{\bfseries{chunk}} é um \emph{array} de 4kbytes que terá \emph{\bfseries{chunk\_size}} bytes do ficheiro a transferir pelos \emph{pipes}. \par
+O \emph{path} do ficheiro está guardado na \emph{String} \emph{\bfseries{file\_path}}. \par
+A operação a efetuar está especificada no inteiro \emph{\bfseries{operation}}. Existem defines para cada tipo de operação, portanto o \emph{\bfseries{operation}} pode estar para \emph{BACKUP}, \emph{RESTORE}, \emph{DELETE} ou \emph{GC}. \par
+O inteiro \emph{\bfseries{status}} comunica o estado do ficheiro, este pode ser \emph{NOT\_FINISHED} caso faltem mais \emph{chunks} para carregar o ficheiro, \emph{FINISHED} caso tenha terminado de carregar todo o ficheiro, e \emph{ERROR} caso tenha ocorrido um erro na leitura do ficheiro.\par
+Finalmente temos o \emph{\bfseries{pid}} do processo que mandou a mensagem.
+
 
 \chapter{Conclusão}
+ficheiros com nome igual explicar pq não implementado. delete e restore ambíguo. 
 
 Neste trabalho acabamos por programar o LightBot em Haskell, ou seja, através de uma sequência de tarefas, conseguimos obter o resultado como uma sequência de comandos em que o robot tem que proceder de modo a acender todas as lâmpadas existentes no tabuleiro, sendo também possível visualizar o robot a realizar tais funções.
 
-\end{document}
+\end{document}
