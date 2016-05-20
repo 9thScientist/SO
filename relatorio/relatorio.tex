@@ -151,10 +151,11 @@ Liberta o espaço alocado em memória pela mensagem.
 
 \chapter{Conclusão}
 Este projeto desenvolveu-nos uma capacidade de pensar numa arquitetura com vários processos concorrentes  para além de nos deixar mais à vontade com o sistema Unix e a sua interação com a linguagem C.\par
-A pesar de não estar em desagrado com o nosso trabalho, há algumas funcionalidas que gostariamos de ter implementado.\par
+Apesar de não estar em desagrado com o nosso trabalho, há algumas funcionalidas que gostariamos de ter implementado.\par
 A habilidade de poder gravar ficheiros com o mesmo nome, por exemplo, o ficheiro \emph{a.txt} da pasta \emph{~/Desktop} e outro como o mesmo nome em \emph{~/Documents}. Que não nos foi possível efeturar devido à ambiguidade que provinha de chamar \emph{restore} no tal ficheiro \emph{a.txt}, mantendo a simplicaidade do comando.\par
-Seria também interessante a possibilidade de manter as várias versões do mesmo ficheiro, apresentando um histórico ao utilizador cada vez que este fosse correr o \emph{restore}, tornando este mais poderoso. Não se concretizou para manter a simplicidade do programa.\par
+Seria também interessante a possibilidade de manter as várias versões do mesmo ficheiro, apresentando um histórico ao utilizador cada vez que este fosse correr o \emph{restore} nesse ficheiro, tornando este mais poderoso. Não se concretizou para manter a simplicidade do programa.\par
+Finalmente, o cliente deveria calcular o sha1sum, assim não seria necessário transferir o ficheiro todo para o servidor para de seguida concluir que já existe uma versão deste lá comprimida. A princípio pensamos que talvez não fosse correto o cliente executar comandos (neste caso o sha1sum), quando decidimos que o devia fazer e enviar para o servidor o \emph{digest}, já foi muito em cima da hora e decidimo-nos focar em aspetos mais importantes.\par
 Foi sem dúvida um trabalho bastante interessante que nos despertou um grande interesse no ramo de \emph{Sistemas Operativos}.
 
 
-\end{document}
+\end{document}
