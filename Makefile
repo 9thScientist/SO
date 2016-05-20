@@ -2,7 +2,7 @@ CFLAGS := -O2 -Wall -Wextra -Wunreachable-code -Wunused-parameter
 
 all: client server
 
-server: server.c backup.c message.c restore.c delete.c
+server: server.c backup.c message.c restore.c delete.c gc.c vec.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 client: client.c message.c vec.c

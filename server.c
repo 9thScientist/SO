@@ -8,6 +8,7 @@
 #include "backup.h"
 #include "restore.h"
 #include "delete.h"
+#include "gc.h"
 
 #define BUFFER_SIZE 512
 #define MAX_CHILDREN 5
@@ -94,6 +95,8 @@ int main(void) {
 				case DELETE: err = delete(msg);
 							 err ? send_error(msg->pid) : send_success(msg->pid);
 							 break;
+				case CLEAN: err = global_clean(msg);
+							break;
 				default: err = 1;
 						 break;
 

@@ -78,12 +78,11 @@ int is_linked(char * data_path) {
 	char metadata_path[PATH_SIZE], aux[100];
 	int pp[2];
 
-	fcntl(pp[0], F_SETFL, O_NONBLOCK);
-
 	strncpy(metadata_path, getenv("HOME"), PATH_SIZE);
 	strncat(metadata_path, METADATA_PATH, PATH_SIZE);
 
 	pipe(pp);
+	fcntl(pp[0], F_SETFL, O_NONBLOCK);
 	if (!fork()) {
 		close(pp[0]);
 		dup2(pp[1],1);

@@ -14,6 +14,7 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
+void global_clean(int server_fifo);
 void restore(char *file, int server_fifo);
 void delete(char *file, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
@@ -34,14 +35,14 @@ int main(int argc, char* argv[]) {
 	int i, server_fifo;
 
 	// Verifica se os argumentos são válidos
-	if (argc == 1 || (strcmp(argv[1], "delete") && 
+	if (argc == 1 || (strcmp(argv[1], "delete") && strcmp(argv[1], "gc") &&
                       strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
 		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\n\
 						 Tente 'sobucli --help' para mais ajuda.");
 		return -1;
 	}
 
-	if (argc == 2) {
+	if (argc == 2 && strcmp(argv[1], "gc")) {
 		fprintf(stderr, "No files specified\n");
 		return -1;
 	}
@@ -91,6 +92,8 @@ int main(int argc, char* argv[]) {
 				restore(argv[i], server_fifo);
 			else if (!strcmp(argv[1], "delete"))
 				delete(argv[i], server_fifo);
+			else if (!strcmp(argv[1], "gc"))
+				global_clean(server_fifo);
 
 			_exit(0);
 		}
@@ -213,6 +216,17 @@ void delete(char* file, int server_fifo) {
 		printf("%s: apagado\n", file);
 	else
 		printf("%s: erro ao apagar\n", file);
+
+	freeMessage(msg);
+}
+
+void global_clean(int server_fifo) {
+	MESSAGE msg = empty_message();
+	uid_t uid = getuid();
+	pid_t pid = getpid();
+	
+	change_message(msg, "gc", uid, pid, NULL, "", 0, FINISHED);
+	write(server_fifo, msg, sizeof(*msg));
 
 	freeMessage(msg);
 }
