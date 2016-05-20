@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <fcntl.h>
+#include <sys/stat.h>
 #include "restore.h"
 
 #define BACKUP_PATH "/.Backup/" 
@@ -22,6 +23,7 @@ int restore(MESSAGE msg) {
 	int s, client_fifo;
 	
 	sprintf(client_fifo_path, "%s/%s%d", getenv("HOME"), BACKUP_PATH, msg->pid);
+	mkfifo(client_fifo_path, 0622);
 	client_fifo = open(client_fifo_path, O_WRONLY);
 
 	f_name = get_file_name(msg->file_path);
@@ -30,7 +32,12 @@ int restore(MESSAGE msg) {
 	strncat(file_path, METADATA_PATH, PATH_SIZE);
 	strncat(file_path, f_name, PATH_SIZE);
 
-	s = readlink(file_path, aux_path, PATH_SIZE);	
+	if ((s = readlink(file_path, aux_path, PATH_SIZE)) == -1) {
+		kill(msg->pid, SIGUSR2);
+		return -1;
+	}else
+		kill(msg->pid, SIGUSR1);
+
 	aux_path[s] = 0;
 
 	strncpy(file_path, getenv("HOME"), PATH_SIZE);
