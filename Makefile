@@ -16,6 +16,7 @@ clear:
 .PHONY: stop
 stop:
 	pkill -f sobusrv
+	-@echo "" > /tmp/sobu_running_user
 
 .PHONY: install
 install:

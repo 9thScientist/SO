@@ -69,7 +69,7 @@ Limpa os executáveis criados pelo \emph{make}.
 Pára todos os processos de \emph{sobusrv}.
 
 \section{make install}
-Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala os executáveis diretamente na pasta \emph{/bin}.\par O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}. Acabamos por escolher a primeira, pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} por questões de compatibilidade.
+Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permissões \emph{sudo} pois instala os executáveis diretamente na pasta \emph{/bin}.\par O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}. Acabamos por escolher a primeira, pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} por questões de compatibilidade.
 
 \section{make uninstall}
 Pareceu-nos importante, depois de ter um instalador, ter também um desinstalador. O make uninstall remove \emph{sobusrv} e \emph{sobucli} da pasta \emph{/bin}.
@@ -110,7 +110,7 @@ Ao fazer o \emph{restore} é necessário um outro \emph{pipe} que transfira, com
 #define BACKUP 0
 #define RESTORE 1
 #define DELETE 2
-#define GC 3
+#define CLEAN 3
 
 #define NOT_FNSHD 1
 #define FINISHED  0 
@@ -132,7 +132,7 @@ typedef struct message {
 \hspace{0cm}\par
 Um \emph{\bfseries{chunk}} é um \emph{array} de 4kbytes que terá \emph{\bfseries{chunk\_size}} bytes do ficheiro a transferir pelos \emph{pipes}. \par
 O \emph{path} do ficheiro está guardado na \emph{String} \emph{\bfseries{file\_path}}. \par
-A operação a efetuar está especificada no inteiro \emph{\bfseries{operation}}. Existem defines para cada tipo de operação, portanto o \emph{\bfseries{operation}} pode estar para \emph{BACKUP}, \emph{RESTORE}, \emph{DELETE} ou \emph{GC}. \par
+A operação a efetuar está especificada no inteiro \emph{\bfseries{operation}}. Existem defines para cada tipo de operação, portanto o \emph{\bfseries{operation}} pode estar para \emph{BACKUP}, \emph{RESTORE}, \emph{DELETE} ou \emph{CLEAN}. \par
 O inteiro \emph{\bfseries{status}} comunica o estado do ficheiro, este pode ser \emph{NOT\_FINISHED} caso faltem mais \emph{chunks} para carregar o ficheiro, \emph{FINISHED} caso tenha terminado de carregar todo o ficheiro, e \emph{ERROR} caso tenha ocorrido um erro na leitura do ficheiro.\par
 Finalmente temos o \emph{\bfseries{pid}} do processo que mandou a mensagem.
 

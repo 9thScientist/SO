@@ -17,7 +17,7 @@ int is_linked(char * data_path);
 
 int global_clean() {
 
-	char aux_path[PATH_SIZE], file_path[PATH_SIZE], aux[CHUNK_SIZE];
+	char aux_path[PATH_SIZE], aux[CHUNK_SIZE];
 	vec_str_t files;
 	int i;
 
@@ -28,14 +28,9 @@ int global_clean() {
 	fill_vec(aux_path, aux, CHUNK_SIZE, &files);
 
 	for (i = 0; i < files.length; i++) {
-		strncpy(aux_path, getenv("HOME"), PATH_SIZE);
-		strncat(aux_path, DATA_PATH, PATH_SIZE);
-		strncat(aux_path, files.data[i], PATH_SIZE);
-		realpath(aux_path, file_path);
 
-		printf("A testar se %s tem link\n", file_path);
-		if (!is_linked(file_path)) 
-			unlink(file_path);
+		if (!is_linked(files.data[i]))  
+			unlink(files.data[i]);
 	}
 
 	return 0;
