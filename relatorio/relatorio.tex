@@ -41,65 +41,65 @@
 
 \chapter{Introdução}
 
-Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos, reduzindo o espaço por eles ocupados. Temos também de considerar a privacidade de dados mantendo uma arquitetura cliente/servidor impedindo o acesso direto do cliente à pasta de backup.\par
+Este projeto foi realizado no âmbito da disciplina de \emph{Sistemas Operativos} e tem como objetivo a criação de um sistema de cópias eficiente, que guarda ficheiros dados por um utilizador. Estes são então comprimidos, reduzindo o espaço por eles ocupados. Temos também de considerar a privacidade dos dados mantendo uma arquitetura cliente/servidor que impede o acesso direto do cliente à pasta de backup.\par
 O trabalho parecia ser fácil à primeira vista mas o nosso grupo não estava a considerar toda a dificuldade duma arquitetura com processos concorrentes, o que nos levou a adquirir uma nova maneira de pensar.\par
 O projeto tem então duas funcionalidades principais. O \emph{\bfseries{backup}} que se responsabiliza por comprimir os ficheiros e salva-los na pasta que viremos a chamar \emph{raiz do backup}. O \emph{\bfseries{restore}} que simplesmente descomprime o ficheiro e o devolve na sua diretoria original. Vamos de seguida explicar estes dois com mais profundidade.
 
 \chapter{Funcionalidades}
 \section{Backup}
-A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda o ficheiro ou todo o conteúdo de uma pasta, mas visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde. Quando o backup estiver concluído o servidor envia um sinal de sucesso ou de erro ao cliente.
+A funcionalidade \emph{backup} é a principal de todo o trabalho. Aos olhos do utilizador apenas guarda os dados mas, visto de mais perto, é bem mais complexo.\par Primeiro, o cliente terá que enviar todo o conteúdo do ficheiro a salvar em blocos de 4kbytes até o ficheiro estar completamente transferido para o servidor. Este terá então de lhe atribuir um \emph{digest} gerado pelo \emph{sha1sum}, comprimi-lo na pasta \emph{data}  usando o comando \emph{gzip} e alterar o seu nome para esse \emph{digest}. É também guardado na pasta \emph{metadata} um \emph{link simbólico} com o nome original do ficheiro ligado ao ficheiro correspondente em \emph{data}, para além de criar outro \emph{link simbólico} na pasta \emph{paths} ligado à diretoria original desse ficheiro com o \emph{path} original do ficheiro, para que este possa ser corretamente recuperado mais tarde.\par Quando o backup estiver concluído o servidor envia um sinal de sucesso ou de erro ao cliente.
 
 \section{Restore}
-Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler dos \emph{links simbólicos} do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. A partir deste, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem comprometer futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro, este é por fim, lá montado.
+Esta funcionalidade complementa o backup, permitindo-nos reaver os ficheiros guardados.\par O restore começa por ler dos \emph{links simbólicos} do \emph{metadata} o \emph{digest} correspondente ao conteúdo que pretendemos recuperar da pasta \emph{data}. A partir deste, é criada uma cópia do conteúdo para que possamos descomprimir o ficheiro sem comprometer futuros \emph{restores}. Após ser descomprimido, o conteúdo é enviado para o cliente, em conjunto com o \emph{path} original do ficheiro. Por fim, este é reconstruído na sua diretoria original.
 
 \section{Delete}
-O comando \emph{delete} apaga a entrada do ficheiro da \emph{raiz do backup}. Para isso, apenas apaga o ficheiro de \emph{metadata/} e de \emph{paths}, mantendo o conteúdo comprimido em \emph{data/}.
+O comando \emph{delete} apaga a entrada do ficheiro da \emph{raiz do backup}. Para isso, apenas remove-se o ficheiro correspondente nas diretorias \emph{metadata/} e \emph{paths/}, mantendo o conteúdo comprimido em \emph{data/}.
 
 \section{Global Clean}
-O \emph{Global Clean} é chamado pelo nome de \emph{gc}, remove todos os conteúdos em \emph{data/} que não estão a ser ligados por nenhum ficheiro em \emph{metadata/}.
+O \emph{Global Clean} é chamado pelo nome de \emph{gc}, remove todos os conteúdos em \emph{data/} para os quais não existe nenhum \emph{link} em \emph{metadata/}.
 
 \chapter{Makefile}
 \section{make}
 Compila o cliente para o ficheiro \emph{client} e servidor para \emph{server}.
 
 \section{make clean}
-Apenas limpa os executáveis criados pelo \emph{make}.
+Limpa os executáveis criados pelo \emph{make}.
 
 \section{make stop}
-Para todos os processos de \emph{sobusrv}.
+Pára todos os processos de \emph{sobusrv}.
 
 \section{make install}
-Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala estes executáveis diretamente na pasta \emph{/bin}. O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}, acabamos por escolher a primeira pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} para manter compatibilidade.
+Instala o \emph{sobucli} e \emph{sobusrv}. Este comando irá necessitar de permições \emph{sudo} pois instala os executáveis diretamente na pasta \emph{/bin}.\par O nosso grupo questionou-se sobre colocar na diretoria \emph{/bin} ou alterar o \emph{PATH} de \emph{.bashrc}. Acabamos por escolher a primeira, pois a segunda alternativa não iria funcionar com nenhum de nós visto que o nosso path está guardado em \emph{.zshrc} do \emph{zsh}, uma shell alternativa à \emph{bash} habitual. Mantemos então o instalador a copiar para a pasta \emph{/bin} por questões de compatibilidade.
 
 \section{make uninstall}
-Pareceu-nos importante, depois de ter um instalador, ter também um desinstalador. O make uninstall apenas remove \emph{sobusrv} e \emph{sobucli} da pasta \emph{/bin}.
+Pareceu-nos importante, depois de ter um instalador, ter também um desinstalador. O make uninstall remove \emph{sobusrv} e \emph{sobucli} da pasta \emph{/bin}.
 
 \chapter{Raiz do Backup}
-A \emph{raiz do backup} é uma pasta que se encontra na \emph{home} do utilizador que corre o servidor. Dentro dela, encontra-se o \emph{pipe} que servirá de comunicação cliente/servidor e, ocasionalmente, um conjunto de outros \emph{pipes} para servir de comunicação servidor/cliente necessária para o comando \emph{restore}, também uma pasta \emph{data/}, \emph{metadata/} e \emph{paths}.\par
+A \emph{raiz do backup} é uma pasta que se encontra na \emph{home} do utilizador que corre o servidor. Dentro dela, encontra-se o \emph{pipe} que servirá de comunicação cliente/servidor e, ocasionalmente, um conjunto de outros \emph{pipes} para servir de comunicação servidor/cliente, necessária para o comando \emph{restore}. Existe também uma pasta \emph{data/}, \emph{metadata/} e \emph{paths/}.\par
 
 \section{data/}
-Na pasta \emph{data/} encontra-se todos os ficheiros comprimidos com o comando \emph{gzip}, para além disso, o nome dos ficheiros são o seu \emph{digest} criado por \emph{sha1sum}. Deste modeo é fácil descobrir ficheiros repetidos quando é chamado um novo \emph{backup}. O comando \emph{delete} não apaga nenhum destes ficheiros, para isso encontra-se designado o \emph{gc} que limpa todos os ficheiros de \emph{data/} que não estão ligados por \emph{metadata/}.
+Na pasta \emph{data/} encontra-se o conteúdo de todos os ficheiros guardados, comprimidos com o comando \emph{gzip}. O nome de cada um destes ficheiros corresponde ao seu \emph{digest} criado por \emph{sha1sum}. Deste modo, é fácil descobrir ficheiros repetidos quando é chamado um novo \emph{backup}. O comando \emph{delete} não apaga nenhum destes ficheiros. Para isso encontra-se designado o \emph{gc} que limpa todos os ficheiros de \emph{data/} que não estão ligados por nenhum \emph{link} em \emph{metadata/}.
 
 \section{metadata/}
-Na pasta \emph{metadata/} estão guardados os \emph{links simbólicos} que ligam o nome do ficheiro ao seu conteúdo em \emph{data/}. O comando \emph{delete} apenas apaga estes \emph{links}.
+Na pasta \emph{metadata/} estão guardados os \emph{links simbólicos} que ligam o nome original do ficheiro ao seu conteúdo em \emph{data/}. O comando \emph{delete} apenas apaga estes \emph{links}.
 
 \section{paths/}
-Tal como a pasta \emph{metadata/}, a pasta \emph{data/} contém \emph{links simbólicos} que ligam o nome do ficheiro ao seu \emph{path} original para depois ser usado no \emph{restore}.
+Tal como a pasta \emph{metadata/}, a pasta \emph{paths/} contém \emph{links simbólicos} que, neste caso, ligam o nome do ficheiro ao seu \emph{path} original para mais tarde ser usado no \emph{restore}.
 
 \chapter{Comunicação cliente/servidor}
 
 \section{Pipe do servidor}
-O servidor cria um pipe que se encontra na \emph{raiz do backup} com o nome \emph{sobupipe}. O servidor fica numa espera passiva até que o cliente transmita as operações que pretende que o primeiro execute. Estes pedidos são enviados em forma de \emph{mensagem}, uma estrutura que iremos discutir de seguida.
+O servidor cria um pipe que se encontra na \emph{raiz do backup} com o nome \emph{sobupipe}. O servidor fica numa espera passiva, até que o cliente transmita as operações que pretende que o primeiro execute. Estes pedidos são enviados em forma de \emph{mensagem}, uma estrutura que iremos discutir de seguida.
 
 \section{Sinais}
-Usamos sinais principalmente para o servidor notificar o cliente que o seu ficheiro já foi processado. Para sucesso, o servidor envia \emph{SIGUSR1} para erro envia \emph{SIGUSR2}. O utilizador ao receber cada um dos sinais escreve no ecrã a mensagem correspondente. Conforme o exemplo:
+Usamos sinais para o servidor notificar o cliente que o seu ficheiro já foi processado. Para sucesso, o servidor envia \emph{SIGUSR1}, para erro envia \emph{SIGUSR2}. O cliente ao receber cada um dos sinais escreve no ecrã a mensagem correspondente. Conforme o exemplo:
 \begin{lstlisting}
 a.txt: copiado
 b.txt: erro ao copiar
 \end{lstlisting}
 
 \section{Pipe do cliente}
-Ao fazer o \emph{restore} é necessário um outro \emph{pipe} que transfira, com estruturas do tipo mensagem, o documento descomprimido para o cliente, que o monta na sua localização original. Será criado na \emph{raiz do backup} pelo servidor com o nome que do \emph{pid} do processo que lhe enviou o pedido. Este \emph{pipe} é imediatamente removido depois de já não ser necessário.  
+Ao fazer o \emph{restore} é necessário um outro \emph{pipe} que transfira, com estruturas do tipo mensagem, o documento descomprimido para o cliente, que o monta na sua localização original. Este é criado na \emph{raiz do backup} pelo servidor com o nome do \emph{pid} do processo que lhe enviou o pedido e é imediatamente removido no fim da operação
 
 \chapter{Mensagem}
 
