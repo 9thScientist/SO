@@ -39,16 +39,18 @@ int main(void) {
 	strncpy(server_fifo_path, home, PATH_SIZE);
 	strncat(server_fifo_path, "/.Backup/sobupipe", PATH_SIZE);
 
-	if (server_fifo == -1) {
-		perror("Não foi possível establecer um canal de comunicações com os clientes");
-		return -2;
-	}
 	
 	strncpy(bu_root, home, PATH_SIZE);
 	strncat(bu_root, DATA_PATH, PATH_SIZE);
 
 	if (!fork()) { 
 	server_fifo = open(server_fifo_path, O_RDONLY);
+	
+	if (server_fifo == -1) {
+		perror("Não foi possível establecer um canal de comunicações com os clientes");
+		return -2;
+	}
+
 	while(1) {
 		msg = empty_message();
 		if (!read(server_fifo, msg, sizeof(*msg) )) {

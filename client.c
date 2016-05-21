@@ -159,7 +159,7 @@ void backup(char *file, int server_fifo) {
 void restore(char *file, int server_fifo) {
 	MESSAGE msg = empty_message();
 	char client_fifo_path[PATH_SIZE];
-	int f, st=1, client_fifo;
+	int f, st, client_fifo;
 	uid_t uid = getuid();
 	pid_t pid = getpid();
 	
@@ -181,16 +181,20 @@ void restore(char *file, int server_fifo) {
 	sprintf(client_fifo_path, "%s%d", client_fifo_path, (int) pid);
 	client_fifo = open(client_fifo_path, O_RDONLY);
 
-	while(st) {
-		if (!read(client_fifo, msg, sizeof(*msg))) 
-			continue;
 
-		st = msg->status;
+	read(client_fifo, msg, sizeof(*msg));
+	
+	if ((st = msg->status) == NOT_FNSHD)
+		unlink(msg->file_path); 
+
+	do {
 		f = open(msg->file_path, O_CREAT | O_WRONLY | O_APPEND, 0644);
 		write(f, msg->chunk, msg->chunk_size);
-
 		close(f);
-	}
+	
+		read(client_fifo, msg, sizeof(*msg));
+		st = msg->status;
+	} while(st);
 
 	if (!ret)
 		printf("%s: recuperado\n", file);
