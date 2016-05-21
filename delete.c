@@ -19,6 +19,12 @@ int delete(MESSAGE msg) {
 	strncat(file_path, f_name, PATH_SIZE);
 
 	unlink(file_path);
+	
+	strncpy(file_path, getenv("HOME"), PATH_SIZE);
+	strncat(file_path, PATHS_PATH, PATH_SIZE);
+	strncat(file_path, f_name, PATH_SIZE);
+
+	unlink(file_path);
 
 	return 0;
 }
