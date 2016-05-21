@@ -14,7 +14,7 @@
 #define MAX_CHILDREN 5 
 
 void backup(char *file, int server_fifo); 
-void global_clean(int server_fifo);
+int global_clean(int server_fifo);
 void restore(char *file, int server_fifo);
 void delete(char *file, int server_fifo); 
 int get_server_pipe(char* fifo_path, int size);
@@ -77,6 +77,9 @@ int main(int argc, char* argv[]) {
 		perror("Erro ao tentar comunicar com servidor.");
 		return -4;
 	}
+			
+	if (!strcmp(argv[1], "gc"))
+		return global_clean(server_fifo);
 
 	for(i = 2; i < argc; i++) {
 		if (alive == MAX_CHILDREN) 
@@ -93,8 +96,6 @@ int main(int argc, char* argv[]) {
 				restore(argv[i], server_fifo);
 			else if (!strcmp(argv[1], "delete"))
 				delete(argv[i], server_fifo);
-			else if (!strcmp(argv[1], "gc"))
-				global_clean(server_fifo);
 
 			_exit(0);
 		}
@@ -221,15 +222,16 @@ void delete(char* file, int server_fifo) {
 	freeMessage(msg);
 }
 
-void global_clean(int server_fifo) {
-	MESSAGE msg = empty_message();
+int global_clean(int server_fifo) {
+	MESSAGE msg; 
 	uid_t uid = getuid();
 	pid_t pid = getpid();
 	
-	change_message(msg, "gc", uid, pid, NULL, "", 0, FINISHED);
+	msg = init_message("gc", uid, pid, "", "", 0, FINISHED);
 	write(server_fifo, msg, sizeof(*msg));
 
 	freeMessage(msg);
+	return 0;
 }
 
 /**
