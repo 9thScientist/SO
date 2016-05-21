@@ -26,6 +26,7 @@ void get_all_files(char *dir, char *aux, int aux_size);
 void count_dead(int pid);
 void write_succ_message();
 void write_fail_message();
+int print_help(); 
 
 int alive;
 char* current_file;
@@ -37,13 +38,14 @@ int main(int argc, char* argv[]) {
 
 	// Verifica se os argumentos são válidos
 	if (argc == 1 || (strcmp(argv[1], "delete") && strcmp(argv[1], "gc") &&
-                      strcmp(argv[1], "backup") && strcmp(argv[1], "restore"))) {
-		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\n\
-						 Tente 'sobucli --help' para mais ajuda.");
+                      strcmp(argv[1], "backup") && strcmp(argv[1], "restore") &&
+					  strcmp(argv[1], "--help"))) {
+		fprintf(stderr, "Utilização: sobucli [MODO] ...[FICHEIROS]\
+						 \nTente 'sobucli --help' para mais ajuda.\n");
 		return -1;
 	}
 
-	if (argc == 2 && strcmp(argv[1], "gc")) {
+	if (argc == 2 && strcmp(argv[1], "gc") && strcmp(argv[1], "--help")) {
 		fprintf(stderr, "No files specified\n");
 		return -1;
 	}
@@ -80,6 +82,10 @@ int main(int argc, char* argv[]) {
 			
 	if (!strcmp(argv[1], "gc"))
 		return global_clean(server_fifo);
+
+	if (!strcmp(argv[1], "--help"))
+		return print_help();
+
 
 	for(i = 2; i < argc; i++) {
 		if (alive == MAX_CHILDREN) 
@@ -343,4 +349,15 @@ void write_succ_message() {
 // escreve a mensagem de erro enviada pelo utilizador
 void write_fail_message() {
 	ret = 1;
+}
+
+int print_help() {
+
+	printf("MODOS:\n");
+	printf("backup  - Guarda ficheiro(s) especificados.\n");
+	printf("restore - Coloca ficheiro(s) na sua diretoria original.\n");
+	printf("delete  - Apaga a entrada do(s) ficheiro(s) dados.\n");
+	printf("gc      - Apaga dados irrelevantes da raiz do backup.\n");
+
+	return 0;
 }
